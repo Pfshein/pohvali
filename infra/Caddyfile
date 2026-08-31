@@ -1,0 +1,20 @@
+{
+    auto_https disable_redirects
+}
+
+{$APP_DOMAIN:http://localhost} {
+    # Access logging is intentionally disabled: the MVP must not retain client IPs.
+    encode zstd gzip
+
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    handle /tg/* {
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        reverse_proxy frontend:80
+    }
+}
