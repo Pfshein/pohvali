@@ -11,6 +11,7 @@ import {
   telegramOnboardingStorage,
 } from "./lib/onboarding";
 import { savePraise } from "./lib/praise-api";
+import { createRecoveryPhrase, restoreEncryptionKey } from "./lib/recovery-phrase";
 import { openSession } from "./lib/session";
 import type { TelegramClient } from "./lib/telegram";
 
@@ -95,18 +96,19 @@ export function SessionRoot({ client }: SessionRootProps) {
   const [phase, setPhase] = useState<AppPhase>("loading");
   const [key, setKey] = useState<CryptoKey | null>(null);
   const started = useRef(false);
+  const keyStorage = useMemo(() => telegramKeyStorage(), []);
   const bootstrap = useMemo(
     () =>
       createAppBootstrap(
         {
           openSession: () => openSession(client),
           ensureKey: async () => {
-            setKey(await loadOrCreateEncryptionKey(telegramKeyStorage()));
+            setKey(await loadOrCreateEncryptionKey(keyStorage));
           },
         },
         setPhase,
       ),
-    [client],
+    [client, keyStorage],
   );
 
   useEffect(() => {
@@ -121,6 +123,12 @@ export function SessionRoot({ client }: SessionRootProps) {
         <App
           firstName={client.getFirstName()}
           onSubmitPraise={key ? (text) => savePraise(client, key, text) : undefined}
+          onExportRecoveryPhrase={key ? () => createRecoveryPhrase(key) : undefined}
+          onImportRecoveryPhrase={key
+            ? async (phrase) => {
+                setKey(await restoreEncryptionKey(keyStorage, phrase));
+              }
+            : undefined}
         />
       </OnboardingGate>
     );

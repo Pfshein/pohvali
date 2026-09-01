@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { MonthCalendar } from "./components/MonthCalendar";
+import { RecoveryAccess } from "./components/RecoveryAccess";
 import { StarArcHero } from "./components/StarArcHero";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
 
@@ -22,9 +23,16 @@ function shiftMonth(current: { year: number; month: number }, delta: number): {
 interface AppProps {
   firstName?: string;
   onSubmitPraise?: (text: string) => Promise<unknown>;
+  onExportRecoveryPhrase?: () => Promise<string>;
+  onImportRecoveryPhrase?: (phrase: string) => Promise<void>;
 }
 
-export function App({ firstName, onSubmitPraise }: AppProps = {}) {
+export function App({
+  firstName,
+  onSubmitPraise,
+  onExportRecoveryPhrase,
+  onImportRecoveryPhrase,
+}: AppProps = {}) {
   const [isComposerOpen, setComposerOpen] = useState(false);
   const [praise, setPraise] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
@@ -102,6 +110,12 @@ export function App({ firstName, onSubmitPraise }: AppProps = {}) {
       </section>
 
       <p className="privacy-note">🔒 Текст шифруется на этом устройстве до отправки.</p>
+      {onExportRecoveryPhrase && onImportRecoveryPhrase && (
+        <RecoveryAccess
+          onExport={onExportRecoveryPhrase}
+          onImport={onImportRecoveryPhrase}
+        />
+      )}
 
       {isComposerOpen && (
         <div className="scrim" role="presentation" onMouseDown={() => setComposerOpen(false)}>
