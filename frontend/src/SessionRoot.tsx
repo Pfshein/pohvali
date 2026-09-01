@@ -19,19 +19,20 @@ interface SessionRootProps {
   client: TelegramClient;
 }
 
-function OnboardingGate({ children }: { children: ReactNode }) {
+function OnboardingGate({ children }: { children: (mascotCode: string) => ReactNode }) {
   const [status, setStatus] = useState<"unknown" | "needed" | "done">("unknown");
   const [step, setStep] = useState(0);
   const [mascot, setMascot] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadOnboarding(telegramOnboardingStorage()).then((state) =>
-      setStatus(state.completed ? "done" : "needed"),
-    );
+    void loadOnboarding(telegramOnboardingStorage()).then((state) => {
+      setMascot(state.mascot);
+      setStatus(state.completed ? "done" : "needed");
+    });
   }, []);
 
   if (status === "unknown") return null;
-  if (status === "done") return <>{children}</>;
+  if (status === "done" && mascot) return <>{children(mascot)}</>;
 
   return (
     <Onboarding
@@ -120,8 +121,9 @@ export function SessionRoot({ client }: SessionRootProps) {
   if (phase === "ready") {
     return (
       <OnboardingGate>
-        <App
+        {(mascotCode) => <App
           firstName={client.getFirstName()}
+          mascotCode={mascotCode}
           onSubmitPraise={key ? (text) => savePraise(client, key, text) : undefined}
           onExportRecoveryPhrase={key ? () => createRecoveryPhrase(key) : undefined}
           onImportRecoveryPhrase={key
@@ -129,7 +131,7 @@ export function SessionRoot({ client }: SessionRootProps) {
                 setKey(await restoreEncryptionKey(keyStorage, phrase));
               }
             : undefined}
-        />
+        />}
       </OnboardingGate>
     );
   }

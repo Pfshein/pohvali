@@ -281,8 +281,8 @@ h2 { font-size: 1.2rem; line-height: 1.25; color: var(--ink); }
 }
 .mascot-option {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: var(--space-3);
   width: 100%;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
@@ -290,6 +290,13 @@ h2 { font-size: 1.2rem; line-height: 1.25; color: var(--ink); }
   background: var(--surface);
   cursor: pointer;
 }
+.mascot-option img {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  object-fit: contain;
+}
+.mascot-option__copy { display: flex; flex-direction: column; gap: 2px; }
 .mascot-option strong { color: var(--ink); }
 .mascot-option span { color: var(--muted); font-size: var(--text-sm); }
 .mascot-option--selected {

@@ -89,7 +89,6 @@ async def update_praise(
     praise_id: UUID,
     ciphertext: bytes,
     iv: bytes,
-    sticker: str | None,
 ) -> None:
     async with session.begin():
         user = await repo.get_user(session, telegram_id=telegram_id)
@@ -102,7 +101,6 @@ async def update_praise(
             praise_id=praise_id,
             ciphertext=ciphertext,
             iv=iv,
-            sticker=sticker,
         )
         if not updated:
             raise PraiseNotFound

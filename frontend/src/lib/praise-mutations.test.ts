@@ -19,7 +19,7 @@ describe("editing a praise", () => {
     const key = await generateEncryptionKey();
     const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
 
-    await editPraise(fakeClient(), key, "abc-123", "Новая версия", "ava-happy", fetcher);
+    await editPraise(fakeClient(), key, "abc-123", "Новая версия", fetcher);
 
     expect(fetcher).toHaveBeenCalledTimes(1);
     const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
@@ -27,8 +27,7 @@ describe("editing a praise", () => {
     expect(init.method).toBe("PATCH");
     expect((init.headers as Record<string, string>).Authorization).toBe("tma init-raw");
     const body = JSON.parse(init.body as string);
-    expect(Object.keys(body).sort()).toEqual(["body_ciphertext", "iv", "sticker"]);
-    expect(body.sticker).toBe("ava-happy");
+    expect(Object.keys(body).sort()).toEqual(["body_ciphertext", "iv"]);
     expect(body.body_ciphertext).not.toContain("версия");
   });
 
@@ -37,7 +36,7 @@ describe("editing a praise", () => {
     const fetcher = vi.fn(async () => new Response("nope", { status: 404 }));
 
     await expect(
-      editPraise(fakeClient(), key, "abc-123", "текст", null, fetcher),
+      editPraise(fakeClient(), key, "abc-123", "текст", fetcher),
     ).rejects.toThrow("Could not edit praise");
   });
 });

@@ -1,4 +1,4 @@
-from sqlalchemy import Date, DateTime, LargeBinary, String, Uuid
+from sqlalchemy import Date, DateTime, LargeBinary, Uuid
 
 from app.models import Praise  # aggregator import keeps the users FK target in metadata
 
@@ -11,20 +11,11 @@ def test_praise_persists_only_ciphertext_and_never_plaintext() -> None:
         "user_id",
         "body_ciphertext",
         "iv",
-        "sticker",
         "local_date",
         "created_at",
         "updated_at",
     }
     assert columns.isdisjoint({"body", "text", "plaintext", "body_plaintext"})
-
-
-def test_sticker_is_an_optional_short_code() -> None:
-    sticker = Praise.__table__.c.sticker
-
-    assert isinstance(sticker.type, String)
-    assert sticker.type.length == 32
-    assert sticker.nullable is True
 
 
 def test_ciphertext_and_iv_are_required_opaque_bytes() -> None:

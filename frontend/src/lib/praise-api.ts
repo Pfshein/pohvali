@@ -62,7 +62,6 @@ export async function editPraise(
   key: CryptoKey,
   id: string,
   text: string,
-  sticker: string | null = null,
   fetcher: Fetcher = fetch,
 ): Promise<void> {
   const { ciphertext, iv } = await encryptPraise(normalizePraise(text), key);
@@ -74,7 +73,7 @@ export async function editPraise(
       Authorization: `tma ${initData}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ body_ciphertext: ciphertext, iv, sticker }),
+    body: JSON.stringify({ body_ciphertext: ciphertext, iv }),
   });
 
   if (!response.ok) throw new Error("Could not edit praise");

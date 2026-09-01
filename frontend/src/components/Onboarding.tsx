@@ -1,8 +1,8 @@
-import type { StarterMascot } from "../lib/mascots";
+import type { Mascot } from "../lib/mascots";
 
 interface OnboardingProps {
   step: number;
-  mascots: StarterMascot[];
+  mascots: readonly Mascot[];
   selectedMascot: string | null;
   onSelectMascot: (code: string) => void;
   onNext: () => void;
@@ -50,8 +50,11 @@ export function Onboarding({
                     aria-pressed={selectedMascot === mascot.code}
                     onClick={() => onSelectMascot(mascot.code)}
                   >
-                    <strong>{mascot.name}</strong>
-                    <span>{mascot.blurb}</span>
+                    <img src={mascot.assetPath} alt="" aria-hidden="true" />
+                    <span className="mascot-option__copy">
+                      <strong>{mascot.name}</strong>
+                      <span>{mascot.blurb}</span>
+                    </span>
                   </button>
                 </li>
               ))}

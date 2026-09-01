@@ -3,7 +3,7 @@ import binascii
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 MAX_CIPHERTEXT_BYTES = 4096
 IV_BYTES = 12
@@ -51,7 +51,7 @@ class PraiseCreateRequest(_EncryptedPraiseBody):
 
 
 class PraiseEditRequest(_EncryptedPraiseBody):
-    sticker: str | None = Field(default=None, max_length=32)
+    pass
 
 
 class PraiseCreated(BaseModel):

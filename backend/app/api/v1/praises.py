@@ -118,7 +118,6 @@ async def edit_praise_endpoint(
             praise_id=praise_id,
             ciphertext=ciphertext,
             iv=payload.iv_bytes,
-            sticker=payload.sticker,
         )
     except UserNotFound:
         raise HTTPException(

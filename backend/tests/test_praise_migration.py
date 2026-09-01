@@ -17,16 +17,13 @@ async def assert_praises_schema_contract(database_url: str) -> None:
     engine = create_async_engine(database_url)
     try:
         async with engine.begin() as connection:
-            columns = await connection.run_sync(
-                lambda sync: inspect(sync).get_columns("praises")
-            )
+            columns = await connection.run_sync(lambda sync: inspect(sync).get_columns("praises"))
             by_name = {column["name"]: column for column in columns}
             assert set(by_name) == {
                 "id",
                 "user_id",
                 "body_ciphertext",
                 "iv",
-                "sticker",
                 "local_date",
                 "created_at",
                 "updated_at",
@@ -36,9 +33,7 @@ async def assert_praises_schema_contract(database_url: str) -> None:
             assert isinstance(by_name["local_date"]["type"], Date)
             assert by_name["local_date"]["nullable"] is False
 
-            indexes = await connection.run_sync(
-                lambda sync: inspect(sync).get_indexes("praises")
-            )
+            indexes = await connection.run_sync(lambda sync: inspect(sync).get_indexes("praises"))
             assert any(index["column_names"] == ["user_id", "local_date"] for index in indexes)
 
             foreign_keys = await connection.run_sync(
@@ -53,9 +48,7 @@ async def assert_praises_table_absent(database_url: str) -> None:
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
-            has_table = await connection.run_sync(
-                lambda sync: inspect(sync).has_table("praises")
-            )
+            has_table = await connection.run_sync(lambda sync: inspect(sync).has_table("praises"))
             assert has_table is False
     finally:
         await engine.dispose()

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { MonthCalendar } from "./components/MonthCalendar";
 import { RecoveryAccess } from "./components/RecoveryAccess";
 import { StarArcHero } from "./components/StarArcHero";
+import { findMascot } from "./lib/mascots";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
 
 const PRAISED_DAYS = new Set([2, 5, 9, 14, 18, 23, 27]);
@@ -22,6 +23,7 @@ function shiftMonth(current: { year: number; month: number }, delta: number): {
 
 interface AppProps {
   firstName?: string;
+  mascotCode?: string;
   onSubmitPraise?: (text: string) => Promise<unknown>;
   onExportRecoveryPhrase?: () => Promise<string>;
   onImportRecoveryPhrase?: (phrase: string) => Promise<void>;
@@ -29,10 +31,12 @@ interface AppProps {
 
 export function App({
   firstName,
+  mascotCode,
   onSubmitPraise,
   onExportRecoveryPhrase,
   onImportRecoveryPhrase,
 }: AppProps = {}) {
+  const mascot = findMascot(mascotCode);
   const [isComposerOpen, setComposerOpen] = useState(false);
   const [praise, setPraise] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
@@ -87,7 +91,12 @@ export function App({
         <div className="star-balance" aria-label="12 звёзд"><span aria-hidden="true">★</span><b>12</b></div>
       </header>
 
-      <StarArcHero praisedDays={PRAISED_DAYS} monthName="августе" daysInMonth={31} />
+      <StarArcHero
+        praisedDays={PRAISED_DAYS}
+        monthName="августе"
+        daysInMonth={31}
+        mascot={mascot}
+      />
 
       <MonthCalendar
         year={viewMonth.year}

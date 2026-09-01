@@ -89,12 +89,11 @@ async def update_praise(
     praise_id: UUID,
     ciphertext: bytes,
     iv: bytes,
-    sticker: str | None,
 ) -> bool:
     statement = (
         update(Praise)
         .where(Praise.id == praise_id, Praise.user_id == user_id)
-        .values(body_ciphertext=ciphertext, iv=iv, sticker=sticker, updated_at=func.now())
+        .values(body_ciphertext=ciphertext, iv=iv, updated_at=func.now())
         .returning(Praise.id)
     )
     return (await session.execute(statement)).scalar_one_or_none() is not None
@@ -102,9 +101,7 @@ async def update_praise(
 
 async def delete_praise(session: AsyncSession, *, user_id: UUID, praise_id: UUID) -> bool:
     statement = (
-        delete(Praise)
-        .where(Praise.id == praise_id, Praise.user_id == user_id)
-        .returning(Praise.id)
+        delete(Praise).where(Praise.id == praise_id, Praise.user_id == user_id).returning(Praise.id)
     )
     return (await session.execute(statement)).scalar_one_or_none() is not None
 

@@ -55,8 +55,7 @@ async def read_praise_row(engine, praise_id):
         return (
             await connection.execute(
                 text(
-                    "SELECT body_ciphertext, iv, sticker, updated_at, created_at "
-                    "FROM praises WHERE id = :id"
+                    "SELECT body_ciphertext, iv, updated_at, created_at FROM praises WHERE id = :id"
                 ),
                 {"id": praise_id},
             )
@@ -93,12 +92,10 @@ def test_edit_changes_fields_without_awarding_or_revoking_a_star(database_url: s
                     praise_id=created.id,
                     ciphertext=b"edited-body",
                     iv=bytes([1] * 12),
-                    sticker="ava-happy",
                 )
 
             after = await read_praise_row(engine, created.id)
             assert bytes(after.body_ciphertext) == b"edited-body"
-            assert after.sticker == "ava-happy"
             assert after.updated_at >= before.updated_at
             assert after.created_at == before.created_at
 
@@ -115,7 +112,6 @@ def test_edit_changes_fields_without_awarding_or_revoking_a_star(database_url: s
                         praise_id=created.id,
                         ciphertext=b"hijack",
                         iv=bytes(12),
-                        sticker=None,
                     )
         finally:
             await engine.dispose()

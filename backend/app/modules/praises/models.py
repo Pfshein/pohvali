@@ -7,7 +7,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     LargeBinary,
-    String,
     Uuid,
     func,
     text,
@@ -33,7 +32,6 @@ class Praise(Base):
     )
     body_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     iv: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
-    sticker: Mapped[str | None] = mapped_column(String(32), nullable=True)
     local_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

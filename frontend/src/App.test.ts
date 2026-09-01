@@ -15,7 +15,7 @@ describe("home screen rewards hero", () => {
     const markup = renderToStaticMarkup(createElement(App));
 
     expect(markup).toContain('aria-label="12 звёзд"');
-    expect(markup).toContain('alt="Авокадо — талисман приложения"');
+    expect(markup).toContain('alt="Авокадо Ава — талисман приложения"');
     expect(markup).toContain('aria-label="7 звёзд в августе"');
     expect(markup.match(/class="arc-star/g)).toHaveLength(31);
     expect(markup.match(/arc-star--filled/g)).toHaveLength(7);

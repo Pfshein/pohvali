@@ -1,13 +1,14 @@
-import avocadoMascot from "../assets/avocado-mascot.png";
+import type { Mascot } from "../lib/mascots";
 import { buildMonthStarArc } from "../lib/month-progress";
 
 interface StarArcHeroProps {
   praisedDays: ReadonlySet<number>;
   monthName: string;
   daysInMonth: number;
+  mascot: Mascot;
 }
 
-export function StarArcHero({ praisedDays, monthName, daysInMonth }: StarArcHeroProps) {
+export function StarArcHero({ praisedDays, monthName, daysInMonth, mascot }: StarArcHeroProps) {
   const stars = buildMonthStarArc(praisedDays, daysInMonth);
   const filledStars = stars.filter((star) => star.filled).length;
 
@@ -35,12 +36,12 @@ export function StarArcHero({ praisedDays, monthName, daysInMonth }: StarArcHero
       <div className="mascot-hero__glow" aria-hidden="true" />
       <img
         className="mascot-hero__image"
-        src={avocadoMascot}
-        alt="Авокадо — талисман приложения"
+        src={mascot.assetPath}
+        alt={`${mascot.name} — талисман приложения`}
       />
 
       <div className="mascot-hero__caption">
-        <strong>Авокадо Ава</strong>
+        <strong>{mascot.name}</strong>
         <span>Уже {filledStars} звёзд в {monthName}</span>
       </div>
     </section>
