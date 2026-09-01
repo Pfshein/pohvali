@@ -14,6 +14,7 @@ from app.modules.bot.messages import REMINDER_NUDGE, REMINDER_RETURN
 from app.modules.praises.service import create_praise
 from app.modules.reminders.delivery import deliver_reminders
 from app.modules.reminders.repository import advance_phase, get_user, mark_reminded
+from app.modules.reminders.sender import ReminderUnavailable
 from app.modules.reminders.service import get_settings, record_dm_available
 from app.modules.reminders.state import ReminderPhase
 from app.modules.users.service import open_session
@@ -45,6 +46,18 @@ class ThrottlingSender:
 
         self.calls += 1
         raise ReminderThrottled(0.0)
+
+
+class FirstUnavailableSender:
+    def __init__(self) -> None:
+        self.calls: list[int] = []
+        self.sent: list[int] = []
+
+    async def __call__(self, *, chat_id: int, text: str) -> None:
+        self.calls.append(chat_id)
+        if len(self.calls) == 1:
+            raise ReminderUnavailable
+        self.sent.append(chat_id)
 
 
 async def noop_sleep(_: float) -> None:
@@ -266,6 +279,31 @@ def test_throttled_send_leaves_state_for_retry(database_url: str) -> None:
                 ).scalar_one()
             assert row is None
             assert await phase_of(factory, user) is ReminderPhase.ACTIVE
+        finally:
+            await engine.dispose()
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")
+def test_unavailable_chat_is_disabled_without_stopping_the_batch(database_url: str) -> None:
+    async def scenario() -> None:
+        engine = create_async_engine(database_url)
+        factory = async_sessionmaker(engine, expire_on_commit=False)
+        try:
+            first, second = TELEGRAM_IDS[7:9]
+            await make_active(factory, first)
+            await make_active(factory, second)
+            sender = FirstUnavailableSender()
+
+            await deliver_reminders(factory, NOW, sender=sender, sleep=noop_sleep)
+
+            assert len(sender.calls) == 2
+            assert len(sender.sent) == 1
+            unavailable = sender.calls[0]
+            async with factory() as session:
+                settings = await get_settings(session, telegram_id=unavailable)
+            assert settings.dm_available is False
         finally:
             await engine.dispose()
 

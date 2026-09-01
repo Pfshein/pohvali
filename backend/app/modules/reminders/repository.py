@@ -46,6 +46,15 @@ async def mark_dm_available(session: AsyncSession, *, user_id: UUID) -> None:
     )
 
 
+async def mark_dm_unavailable(session: AsyncSession, *, user_id: UUID) -> None:
+    """Stop retrying a chat after Telegram confirms that delivery is forbidden."""
+    await session.execute(
+        update(ReminderState)
+        .where(ReminderState.user_id == user_id)
+        .values(dm_available=False, updated_at=func.now())
+    )
+
+
 async def set_enabled(session: AsyncSession, *, user_id: UUID, enabled: bool) -> None:
     await session.execute(
         insert(ReminderState)

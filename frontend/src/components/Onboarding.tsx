@@ -7,6 +7,8 @@ interface OnboardingProps {
   onSelectMascot: (code: string) => void;
   onNext: () => void;
   onFinish: () => void;
+  busy?: boolean;
+  error?: string;
 }
 
 export function Onboarding({
@@ -16,6 +18,8 @@ export function Onboarding({
   onSelectMascot,
   onNext,
   onFinish,
+  busy = false,
+  error = "",
 }: OnboardingProps) {
   return (
     <main className="session-screen">
@@ -61,11 +65,12 @@ export function Onboarding({
             </ul>
             <button
               className="primary-button primary-button--wide"
-              disabled={selectedMascot === null}
+              disabled={selectedMascot === null || busy}
               onClick={onFinish}
             >
-              Начать
+              {busy ? "Сохраняем…" : "Начать"}
             </button>
+            {error && <p className="inline-note" role="status">{error}</p>}
           </>
         )}
       </section>

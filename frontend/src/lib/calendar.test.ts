@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { loadCalendar } from "./calendar";
+import { dateInMonth, loadCalendar, markedDaysForMonth, monthRange } from "./calendar";
 import type { TelegramClient } from "./telegram";
 
 function fakeClient(): TelegramClient {
@@ -14,6 +14,24 @@ function fakeClient(): TelegramClient {
 }
 
 describe("calendar loading", () => {
+  it("builds real month boundaries, including leap years", () => {
+    expect(monthRange({ year: 2028, month: 2 })).toEqual({
+      from: "2028-02-01",
+      to: "2028-02-29",
+    });
+    expect(dateInMonth({ year: 2026, month: 9 }, 3)).toBe("2026-09-03");
+  });
+
+  it("maps only marked dates from the requested month", () => {
+    const marked = markedDaysForMonth([
+      { localDate: "2026-08-31", count: 1 },
+      { localDate: "2026-09-01", count: 2 },
+      { localDate: "2026-09-03", count: 0 },
+    ], { year: 2026, month: 9 });
+
+    expect([...marked]).toEqual([1]);
+  });
+
   it("fetches a bounded range once and maps marked days", async () => {
     const fetcher = vi.fn(async () => new Response(
       JSON.stringify([

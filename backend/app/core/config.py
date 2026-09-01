@@ -3,6 +3,18 @@ from typing import Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
+
+_PLACEHOLDERS = {
+    "",
+    "dev-token",
+    "dev-webhook-secret",
+    "dev-webhook-path",
+    "pohvala",
+    "replace-me",
+    "replace-with-a-random-secret",
+    "replace-with-a-random-path",
+}
 
 
 class Settings(BaseSettings):
@@ -21,7 +33,7 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @model_validator(mode="after")
-    def _guard_production_cors(self) -> "Settings":
+    def _guard_production(self) -> "Settings":
         if self.app_env != "production":
             return self
 
@@ -32,6 +44,16 @@ class Settings(BaseSettings):
             raise ValueError(
                 "production CORS_ORIGINS must list only https Mini App origins (no localhost)"
             )
+
+        database_password = make_url(self.database_url).password or ""
+        secret_values = (
+            self.bot_token,
+            self.telegram_webhook_secret,
+            self.telegram_webhook_path,
+            database_password,
+        )
+        if any(value.casefold() in _PLACEHOLDERS for value in secret_values):
+            raise ValueError("production secrets must not use development placeholders")
         return self
 
 

@@ -26,6 +26,15 @@ export async function saveOnboarding(storage: OnboardingStorage, mascot: string)
   await storage.set(mascot);
 }
 
+export async function completeOnboarding(
+  storage: OnboardingStorage,
+  mascot: string,
+  activate: (code: string) => Promise<void>,
+): Promise<void> {
+  await activate(mascot);
+  await saveOnboarding(storage, mascot);
+}
+
 export function telegramOnboardingStorage(): OnboardingStorage {
   const cloud = window.Telegram?.WebApp.CloudStorage;
 

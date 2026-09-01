@@ -40,12 +40,31 @@ const MONTH_NAMES_GENITIVE = [
   "декабря",
 ];
 
+const MONTH_NAMES_PREPOSITIONAL = [
+  "январе",
+  "феврале",
+  "марте",
+  "апреле",
+  "мае",
+  "июне",
+  "июле",
+  "августе",
+  "сентябре",
+  "октябре",
+  "ноябре",
+  "декабре",
+];
+
 export function russianMonthName(month: number): string {
   return MONTH_NAMES[month - 1] ?? "";
 }
 
 export function russianMonthNameGenitive(month: number): string {
   return MONTH_NAMES_GENITIVE[month - 1] ?? "";
+}
+
+export function russianMonthNamePrepositional(month: number): string {
+  return MONTH_NAMES_PREPOSITIONAL[month - 1] ?? "";
 }
 
 export function daysInMonth(year: number, month: number): number {

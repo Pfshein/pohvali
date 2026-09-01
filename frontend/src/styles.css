@@ -330,6 +330,17 @@ h2 { font-size: 1.2rem; line-height: 1.25; color: var(--ink); }
 .primary-button:disabled { background: #b9b9b2; box-shadow: none; cursor: default; }
 .primary-button--wide { width: 100%; margin-top: 18px; }
 .privacy-note { padding: 14px 4px 0; color: var(--muted); font-size: 0.76rem; text-align: center; }
+.inline-note { margin: 10px 2px; color: var(--muted); font-size: var(--text-sm); }
+.day-praises {
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.day-praises h2 { margin: 0 0 var(--space-3); font-size: var(--text-lg); }
+.day-praises p, .day-praises ul { margin: 0; color: var(--muted); }
+.day-praises ul { display: grid; gap: var(--space-2); padding-left: var(--space-5); }
 .recovery-trigger {
   display: block;
   margin: 8px auto 0;

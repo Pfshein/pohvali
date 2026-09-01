@@ -25,7 +25,10 @@ export function MonthCalendar({
   const genitive = russianMonthNameGenitive(month);
 
   return (
-    <section className="calendar" aria-label={`Календарь похвал за ${genitive}`}>
+    <section
+      className="calendar"
+      aria-label={`Календарь похвал за ${russianMonthName(month).toLocaleLowerCase("ru")}`}
+    >
       <div className="calendar__heading">
         <button className="icon-button" aria-label="Предыдущий месяц" onClick={onPrevMonth}>
           ‹

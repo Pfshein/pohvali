@@ -7,6 +7,42 @@ export interface CalendarDay {
   count: number;
 }
 
+export interface MonthRef {
+  year: number;
+  month: number;
+}
+
+function pad(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+export function currentMonth(now: Date = new Date()): MonthRef {
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+export function monthRange({ year, month }: MonthRef): { from: string; to: string } {
+  const lastDay = new Date(year, month, 0).getDate();
+  const prefix = `${year}-${pad(month)}`;
+  return { from: `${prefix}-01`, to: `${prefix}-${pad(lastDay)}` };
+}
+
+export function dateInMonth({ year, month }: MonthRef, day: number): string {
+  return `${year}-${pad(month)}-${pad(day)}`;
+}
+
+export function markedDaysForMonth(
+  days: readonly CalendarDay[],
+  month: MonthRef,
+): ReadonlySet<number> {
+  const prefix = `${month.year}-${pad(month.month)}-`;
+  return new Set(
+    days
+      .filter((day) => day.count > 0 && day.localDate.startsWith(prefix))
+      .map((day) => Number(day.localDate.slice(prefix.length)))
+      .filter((day) => Number.isInteger(day) && day >= 1 && day <= 31),
+  );
+}
+
 export async function loadCalendar(
   client: TelegramClient,
   from: string,

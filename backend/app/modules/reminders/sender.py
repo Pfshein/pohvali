@@ -17,6 +17,10 @@ class ReminderThrottled(Exception):
         self.retry_after = retry_after
 
 
+class ReminderUnavailable(Exception):
+    """Telegram confirms that this private chat can no longer receive messages."""
+
+
 class ReminderSender(Protocol):
     async def __call__(self, *, chat_id: int, text: str) -> None: ...
 
@@ -31,7 +35,7 @@ class AiogramReminderSender:
 
     async def __call__(self, *, chat_id: int, text: str) -> None:
         from aiogram import Bot
-        from aiogram.exceptions import TelegramRetryAfter
+        from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
         bot = Bot(self._bot_token)
@@ -52,5 +56,7 @@ class AiogramReminderSender:
             )
         except TelegramRetryAfter as error:
             raise ReminderThrottled(error.retry_after) from error
+        except TelegramForbiddenError as error:
+            raise ReminderUnavailable from error
         finally:
             await bot.session.close()

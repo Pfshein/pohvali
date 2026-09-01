@@ -21,13 +21,18 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.bot.messages import REMINDER_NUDGE, REMINDER_RETURN
 from app.modules.reminders import repository as repo
-from app.modules.reminders.sender import ReminderSender, ReminderThrottled
+from app.modules.reminders.sender import (
+    ReminderSender,
+    ReminderThrottled,
+    ReminderUnavailable,
+)
 from app.modules.reminders.service import REMINDER_HOUR, local_now
 from app.modules.reminders.state import DORMANT_TO_SILENT_DAYS, ReminderPhase
 
@@ -48,6 +53,12 @@ class ReminderAction:
     telegram_id: int
     local_date: date
     kind: str
+
+
+class SendOutcome(StrEnum):
+    SENT = "sent"
+    THROTTLED = "throttled"
+    UNAVAILABLE = "unavailable"
 
 
 async def plan_reminder_actions(
@@ -106,17 +117,19 @@ async def send_with_backoff(
     text: str,
     sleep: Callable[[float], Awaitable[None]],
     attempts: int = MAX_SEND_ATTEMPTS,
-) -> bool:
-    """Send once, backing off on Telegram throttling. Returns whether it sent."""
+) -> SendOutcome:
+    """Send once, backing off on rate limits and classifying terminal chats."""
     for attempt in range(attempts):
         try:
             await sender(chat_id=chat_id, text=text)
-            return True
+            return SendOutcome.SENT
         except ReminderThrottled as throttled:
             if attempt == attempts - 1:
-                return False
+                return SendOutcome.THROTTLED
             await sleep(throttled.retry_after)
-    return False
+        except ReminderUnavailable:
+            return SendOutcome.UNAVAILABLE
+    return SendOutcome.THROTTLED
 
 
 async def deliver_reminders(
@@ -144,14 +157,26 @@ async def deliver_reminders(
                 )
             continue
 
-        sent = await send_with_backoff(
-            sender,
-            chat_id=action.telegram_id,
-            text=_MESSAGES[action.kind],
-            sleep=sleep,
-        )
-        if not sent:
+        try:
+            outcome = await send_with_backoff(
+                sender,
+                chat_id=action.telegram_id,
+                text=_MESSAGES[action.kind],
+                sleep=sleep,
+            )
+        except Exception:
+            # A network/configuration failure for one chat must not prevent the
+            # rest of the batch from being processed. Never include user ids.
+            logger.exception("reminder send failed", extra={"kind": action.kind})
+            continue
+
+        if outcome is SendOutcome.THROTTLED:
             continue  # throttled out; retry next cycle without losing state
+
+        if outcome is SendOutcome.UNAVAILABLE:
+            async with session_factory() as session, session.begin():
+                await repo.mark_dm_unavailable(session, user_id=action.user_id)
+            continue
 
         async with session_factory() as session, session.begin():
             if action.kind == RETURN:

@@ -75,5 +75,67 @@ def test_production_requires_https_mini_app_cors() -> None:
     with pytest.raises(ValueError, match="CORS_ORIGINS"):
         Settings(app_env="production", cors_origins="http://localhost")
 
-    ok = Settings(app_env="production", cors_origins="https://app.example.com")
+    ok = Settings(
+        app_env="production",
+        bot_token="123456:real-bot-token",
+        telegram_webhook_secret="real-webhook-secret",
+        telegram_webhook_path="real-webhook-path",
+        database_url="postgresql+asyncpg://pohvala:strong-password@postgres:5432/pohvala",
+        cors_origins="https://app.example.com",
+    )
     assert ok.cors_origin_list == ["https://app.example.com"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("bot_token", "dev-token"),
+        ("bot_token", "replace-me"),
+        ("telegram_webhook_secret", "dev-webhook-secret"),
+        ("telegram_webhook_path", "replace-with-a-random-path"),
+        (
+            "database_url",
+            "postgresql+asyncpg://pohvala:pohvala@postgres:5432/pohvala",
+        ),
+    ],
+)
+def test_production_rejects_placeholder_secrets(field: str, value: str) -> None:
+    from app.core.config import Settings
+
+    values = {
+        "app_env": "production",
+        "bot_token": "123456:real-bot-token",
+        "telegram_webhook_secret": "real-webhook-secret",
+        "telegram_webhook_path": "real-webhook-path",
+        "database_url": "postgresql+asyncpg://pohvala:strong-password@postgres:5432/pohvala",
+        "cors_origins": "https://app.example.com",
+        field: value,
+    }
+
+    with pytest.raises(ValueError, match="production secrets"):
+        Settings(**values)
+
+
+def test_cors_preflight_allows_put(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
+
+    from app.core.config import get_settings
+    from app.main import create_app
+
+    get_settings.cache_clear()
+    try:
+        with TestClient(create_app()) as client:
+            response = client.options(
+                "/api/v1/mascots/ava/active",
+                headers={
+                    "Origin": "http://localhost:5173",
+                    "Access-Control-Request-Method": "PUT",
+                    "Access-Control-Request-Headers": "authorization",
+                },
+            )
+    finally:
+        get_settings.cache_clear()
+
+    assert response.status_code == 200
+    assert "PUT" in response.headers["access-control-allow-methods"]

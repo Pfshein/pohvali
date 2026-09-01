@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMonthGrid, daysInMonth, russianMonthName } from "./month-grid";
+import {
+  buildMonthGrid,
+  daysInMonth,
+  russianMonthName,
+  russianMonthNamePrepositional,
+} from "./month-grid";
 
 describe("daysInMonth", () => {
   it.each([
@@ -52,5 +57,9 @@ describe("russianMonthName", () => {
   it("returns the nominative month name", () => {
     expect(russianMonthName(9)).toBe("Сентябрь");
     expect(russianMonthName(8)).toBe("Август");
+  });
+
+  it("returns the prepositional month name for progress copy", () => {
+    expect(russianMonthNamePrepositional(9)).toBe("сентябре");
   });
 });

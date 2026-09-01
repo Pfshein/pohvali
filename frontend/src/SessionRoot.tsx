@@ -3,15 +3,17 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { App } from "./App";
 import { Onboarding } from "./components/Onboarding";
 import { STARTER_MASCOTS } from "./lib/mascots";
+import { loadCalendar } from "./lib/calendar";
 import { createAppBootstrap, type AppPhase } from "./lib/bootstrap";
 import { loadOrCreateEncryptionKey, telegramKeyStorage } from "./lib/encryption-key";
 import {
+  completeOnboarding,
   loadOnboarding,
   saveOnboarding,
   telegramOnboardingStorage,
 } from "./lib/onboarding";
 import { activateMascot, loadCollection, purchaseMascot } from "./lib/mascots-api";
-import { savePraise } from "./lib/praise-api";
+import { loadDay, savePraise } from "./lib/praise-api";
 import { createRecoveryPhrase, restoreEncryptionKey } from "./lib/recovery-phrase";
 import { openSession } from "./lib/session";
 import type { TelegramClient } from "./lib/telegram";
@@ -20,17 +22,26 @@ interface SessionRootProps {
   client: TelegramClient;
 }
 
-function OnboardingGate({ children }: { children: (mascotCode: string) => ReactNode }) {
+function OnboardingGate({
+  children,
+  activateStarter,
+}: {
+  children: (mascotCode: string) => ReactNode;
+  activateStarter: (code: string) => Promise<void>;
+}) {
   const [status, setStatus] = useState<"unknown" | "needed" | "done">("unknown");
   const [step, setStep] = useState(0);
   const [mascot, setMascot] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const storage = useMemo(() => telegramOnboardingStorage(), []);
 
   useEffect(() => {
-    void loadOnboarding(telegramOnboardingStorage()).then((state) => {
+    void loadOnboarding(storage).then((state) => {
       setMascot(state.mascot);
       setStatus(state.completed ? "done" : "needed");
     });
-  }, []);
+  }, [storage]);
 
   if (status === "unknown") return null;
   if (status === "done" && mascot) return <>{children(mascot)}</>;
@@ -40,13 +51,18 @@ function OnboardingGate({ children }: { children: (mascotCode: string) => ReactN
       step={step}
       mascots={STARTER_MASCOTS}
       selectedMascot={mascot}
+      busy={saving}
+      error={error}
       onSelectMascot={setMascot}
       onNext={() => setStep(1)}
       onFinish={() => {
-        if (!mascot) return;
-        void saveOnboarding(telegramOnboardingStorage(), mascot).finally(() =>
-          setStatus("done"),
-        );
+        if (!mascot || saving) return;
+        setSaving(true);
+        setError("");
+        void completeOnboarding(storage, mascot, activateStarter)
+          .then(() => setStatus("done"))
+          .catch(() => setError("Не получилось сохранить выбор. Можно попробовать ещё раз."))
+          .finally(() => setSaving(false));
       }}
     />
   );
@@ -99,12 +115,20 @@ export function SessionRoot({ client }: SessionRootProps) {
   const [key, setKey] = useState<CryptoKey | null>(null);
   const started = useRef(false);
   const keyStorage = useMemo(() => telegramKeyStorage(), []);
+  const onboardingStorage = useMemo(() => telegramOnboardingStorage(), []);
   const mascotCollection = useMemo(
     () => ({
       load: () => loadCollection(client),
       purchase: (code: string) => purchaseMascot(client, code),
-      activate: (code: string) => activateMascot(client, code),
+      activate: async (code: string) => {
+        await activateMascot(client, code);
+        await saveOnboarding(onboardingStorage, code);
+      },
     }),
+    [client, onboardingStorage],
+  );
+  const calendarLoader = useMemo(
+    () => (from: string, to: string) => loadCalendar(client, from, to),
     [client],
   );
   const bootstrap = useMemo(
@@ -129,7 +153,7 @@ export function SessionRoot({ client }: SessionRootProps) {
 
   if (phase === "ready") {
     return (
-      <OnboardingGate>
+      <OnboardingGate activateStarter={(code) => activateMascot(client, code)}>
         {(mascotCode) => <App
           firstName={client.getFirstName()}
           mascotCode={mascotCode}
@@ -141,6 +165,8 @@ export function SessionRoot({ client }: SessionRootProps) {
               }
             : undefined}
           mascotCollection={mascotCollection}
+          onLoadCalendar={calendarLoader}
+          onLoadDay={key ? (date) => loadDay(client, key, date) : undefined}
         />}
       </OnboardingGate>
     );

@@ -31,6 +31,24 @@ jobs:
     name: Backend
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: pohvala_test
+          POSTGRES_USER: pohvala
+          POSTGRES_PASSWORD: test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pohvala -d pohvala_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      RUN_DATABASE_TESTS: "1"
+      DATABASE_URL: postgresql+asyncpg://pohvala:test-password@localhost:5432/pohvala_test
     defaults:
       run:
         working-directory: backend
