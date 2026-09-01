@@ -19,6 +19,10 @@ scheduler/sender (PH-502/PH-503) build on top of them.
 
 from enum import StrEnum
 
+# Days a reminder stays dormant before the single return message and going
+# silent (PH-503). Measured from when the user entered the dormant phase.
+DORMANT_TO_SILENT_DAYS = 30
+
 
 class ReminderPhase(StrEnum):
     ACTIVE = "active"

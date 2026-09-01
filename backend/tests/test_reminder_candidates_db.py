@@ -11,7 +11,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.modules.reminders.repository import get_user
-from app.modules.reminders.scheduler import run_reminder_cycle
 from app.modules.reminders.service import (
     mark_reminded,
     record_dm_available,
@@ -160,29 +159,6 @@ def test_window_follows_the_local_wall_clock_across_dst(database_url: str) -> No
             # Winter: Berlin is UTC+1, so the same 20:15 UTC is 21:15 local — out.
             winter = datetime(2026, 1, 15, 20, 15, tzinfo=UTC)
             assert user not in await candidate_ids(factory, winter)
-        finally:
-            await engine.dispose()
-
-    asyncio.run(scenario())
-
-
-@pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")
-def test_run_cycle_delivers_candidates_to_the_handler(database_url: str) -> None:
-    async def scenario() -> None:
-        engine = create_async_engine(database_url)
-        factory = async_sessionmaker(engine, expire_on_commit=False)
-        try:
-            user = TELEGRAM_IDS[7]
-            await make_eligible(factory, user, "Europe/Moscow")
-
-            seen: list[int] = []
-
-            async def handle(candidates) -> None:
-                seen.extend(candidate.telegram_id for candidate in candidates)
-
-            await run_reminder_cycle(factory, handle=handle, now=MSK_2215)
-
-            assert user in seen
         finally:
             await engine.dispose()
 

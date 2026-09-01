@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select, tuple_, update
@@ -104,6 +104,33 @@ async def praises_written_on(
     return {(row.user_id, row.local_date) for row in result.all()}
 
 
+async def list_reminder_pending(session: AsyncSession) -> list[Row]:
+    """Reachable, opted-in users whose reminder can still act (active or dormant).
+
+    Silent users are excluded — they never receive another message. Includes the
+    phase and when it last changed so the fade rules (PH-503) can be applied.
+    """
+    result = await session.execute(
+        select(
+            User.id,
+            User.telegram_id,
+            User.timezone,
+            ReminderState.phase,
+            ReminderState.phase_changed_at,
+            ReminderState.last_reminded_on,
+        )
+        .join(ReminderState, ReminderState.user_id == User.id)
+        .where(
+            ReminderState.enabled.is_(True),
+            ReminderState.dm_available.is_(True),
+            ReminderState.phase.in_(
+                [ReminderPhase.ACTIVE.value, ReminderPhase.DORMANT.value]
+            ),
+        )
+    )
+    return list(result.all())
+
+
 async def mark_reminded(
     session: AsyncSession,
     *,
@@ -114,4 +141,47 @@ async def mark_reminded(
         update(ReminderState)
         .where(ReminderState.user_id == user_id)
         .values(last_reminded_on=local_date, updated_at=func.now())
+    )
+
+
+async def advance_phase(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    phase: ReminderPhase,
+    now: datetime,
+    local_date: date,
+) -> None:
+    """Move a user to a new fade phase and record that we acted today."""
+    await session.execute(
+        update(ReminderState)
+        .where(ReminderState.user_id == user_id)
+        .values(
+            phase=phase.value,
+            phase_changed_at=now,
+            last_reminded_on=local_date,
+            updated_at=func.now(),
+        )
+    )
+
+
+async def reactivate_on_praise(session: AsyncSession, *, user_id: UUID) -> None:
+    """Reset a faded reminder to active when the user re-engages by writing.
+
+    No-op for users already active or without a reminder row, so it is safe to
+    call on every praise. Clears ``last_reminded_on`` so the fresh cadence is
+    judged from scratch.
+    """
+    await session.execute(
+        update(ReminderState)
+        .where(
+            ReminderState.user_id == user_id,
+            ReminderState.phase != ReminderPhase.ACTIVE.value,
+        )
+        .values(
+            phase=ReminderPhase.ACTIVE.value,
+            phase_changed_at=func.now(),
+            last_reminded_on=None,
+            updated_at=func.now(),
+        )
     )

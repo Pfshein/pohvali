@@ -63,7 +63,7 @@ class ReminderCandidate:
     local_date: date
 
 
-def _local_now(timezone: str, moment: datetime) -> datetime | None:
+def local_now(timezone: str, moment: datetime) -> datetime | None:
     try:
         return moment.astimezone(ZoneInfo(timezone))
     except (ZoneInfoNotFoundError, ValueError):
@@ -85,7 +85,7 @@ async def select_reminder_candidates(
 
     in_window: list[ReminderCandidate] = []
     for row in rows:
-        local = _local_now(row.timezone, now)
+        local = local_now(row.timezone, now)
         if local is None or local.hour != REMINDER_HOUR:
             continue
         local_date = local.date()
