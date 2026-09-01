@@ -26,7 +26,10 @@ def validate_init_data(
     """Validate Telegram Mini App initData and return its minimal identity."""
     pairs = dict(parse_qsl(init_data, keep_blank_values=True, strict_parsing=True))
     received_hash = pairs.pop("hash", None)
-    pairs.pop("signature", None)
+    # Only `hash` is excluded from the data-check-string. Telegram computes the
+    # HMAC over every other field, including `signature` (its Ed25519 field for
+    # third-party validation), so `signature` MUST stay in — dropping it makes
+    # every real initData fail while a self-signed one without it still passes.
 
     if not received_hash:
         raise InvalidInitData("missing hash")
