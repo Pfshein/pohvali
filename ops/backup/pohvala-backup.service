@@ -13,6 +13,7 @@ Group=root
 UMask=0077
 WorkingDirectory=/opt/pohvali
 EnvironmentFile=-/etc/pohvali-backup/config
+EnvironmentFile=-/etc/pohvali-backup/offsite.env
 ExecStart=/usr/local/libexec/pohvala-backup/backup.sh
 TimeoutStartSec=2h
 NoNewPrivileges=true

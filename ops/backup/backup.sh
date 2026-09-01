@@ -20,7 +20,22 @@ if [[ ! "$RETENTION_COUNT" =~ ^[0-9]+$ ]] \
   exit 2
 fi
 
-for dependency in docker age find flock mktemp sort; do
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+offsite_common="$script_dir/offsite-common.sh"
+if [[ ! -r "$offsite_common" ]]; then
+  printf 'offsite helper is missing: %s\n' "$offsite_common" >&2
+  exit 2
+fi
+# shellcheck source=offsite-common.sh
+source "$offsite_common"
+offsite_load_config
+offsite_validate
+
+dependencies=(docker age find flock mktemp sort)
+if [[ "$OFFSITE_ENABLED" == 1 ]]; then
+  dependencies+=(rclone)
+fi
+for dependency in "${dependencies[@]}"; do
   if ! command -v "$dependency" >/dev/null 2>&1; then
     printf 'required command is missing: %s\n' "$dependency" >&2
     exit 2
@@ -102,7 +117,44 @@ done
 
 rm -f -- "$retention_path"
 retention_path=""
+
+if [[ "$OFFSITE_ENABLED" == 1 ]]; then
+  offsite_remote="$(offsite_remote_root)"
+  if ! offsite_rclone copy "$BACKUP_DIR" "$offsite_remote" \
+    --s3-no-check-bucket --include "$OFFSITE_ARCHIVE_PATTERN"; then
+    printf 'offsite upload failed\n' >&2
+    exit 1
+  fi
+  offsite_listing=""
+  if ! offsite_listing="$(offsite_rclone lsf --files-only "$offsite_remote")"; then
+    printf 'offsite retention scan failed\n' >&2
+    exit 1
+  fi
+  offsite_archives=()
+  while IFS= read -r offsite_name; do
+    if [[ "$offsite_name" == $OFFSITE_ARCHIVE_PATTERN ]]; then
+      offsite_archives+=("$offsite_name")
+    fi
+  done <<< "$offsite_listing"
+  if (( ${#offsite_archives[@]} > 0 )); then
+    mapfile -t offsite_archives < <(printf '%s\n' "${offsite_archives[@]}" | sort -r)
+  fi
+  offsite_kept=0
+  for offsite_name in "${offsite_archives[@]}"; do
+    if (( offsite_kept >= OFFSITE_RETENTION_COUNT )); then
+      if ! offsite_rclone deletefile "$offsite_remote/$offsite_name"; then
+        printf 'offsite retention delete failed\n' >&2
+        exit 1
+      fi
+    fi
+    offsite_kept=$((offsite_kept + 1))
+  done
+fi
+
 trap - EXIT INT TERM
 
 archive_size="$(wc -c < "$archive_path")"
 printf 'backup complete: %s (%s bytes)\n' "$archive_name" "$archive_size"
+if [[ "$OFFSITE_ENABLED" == 1 ]]; then
+  printf 'offsite upload complete: %s\n' "$offsite_remote"
+fi
