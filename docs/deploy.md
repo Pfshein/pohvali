@@ -383,9 +383,9 @@ git switch main
   systemd timer и не добавляет долгоживущий Compose-сервис.
 - Snapshot провайдера не заменяет внешний backup. PH-704A/704B реализованы:
   локальный зашифрованный dump и offsite-выгрузка в приватное S3-совместимое
-  хранилище описаны в [`docs/backup.md`](backup.md). До публичного запуска
-  требуется включить выгрузку на production и пройти первый off-host restore
-  drill при недоступном VPS.
+  хранилище описаны в [`docs/backup.md`](backup.md). Операционная активация на
+  production (реальный bucket, `offsite.env` на VPS, первый off-host restore
+  drill) — PH-707.
 - До публичного запуска также остаётся PH-706: privacy policy, удаление данных,
   юрисдикция и честное описание границ Telegram/recovery. Без PH-704/PH-706 стек
   подходит для закрытой альфы, но не считается полностью готовым публичным MVP.

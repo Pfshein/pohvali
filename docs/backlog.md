@@ -193,9 +193,8 @@
 **PH-704B · публичный запуск:** реализованы выгрузка готового `*.dump.age` в
 приватное внешнее S3-совместимое object storage (rclone, отдельный секретный
 env, удалённый retention) и off-host restore drill — см.
-[`docs/backup.md`](backup.md). Статус остаётся открытым до настройки выгрузки
-на production и первого успешного восстановления из внешнего хранилища при
-недоступном VPS. Только после этого PH-704 считается выполненной полностью.
+[`docs/backup.md`](backup.md). Реализация завершена; операционная активация на
+production вынесена в PH-707. До её выполнения PH-704 остаётся открытой.
 
 ### PH-705 · P0 · Production deploy runbook
 
@@ -207,9 +206,19 @@ env, удалённый retention) и off-host restore drill — см.
 
 **Приёмка:** определены юрисдикция и data residency; опубликованы privacy policy, deletion path и честное объяснение Telegram trust boundary/recovery limitations.
 
+### PH-707 · P0 · Активация offsite backup на production
+
+**Зависит от:** PH-704B (реализация), PH-705 (production VPS).
+
+**Результат:** зашифрованные архивы реально уходят с VPS в приватный S3 bucket и восстанавливаются из него без VPS.
+
+**Конфигурация:** выбран провайдер и создан приватный S3-совместимый bucket с выключенным public access и зафиксированным регионом (ЕС); access key имеет права только на `BUCKET/PREFIX/*` (Put/Get/Delete) и `ListBucket` по префиксу. На production VPS установлены `rclone`, файл `/etc/pohvali-backup/offsite.env` (root, 0600) и обновлённые root-owned копии `backup.sh`/`offsite-common.sh` с unit; `POHVALA_OFFSITE_ENABLED=1`. Секреты не покидают сервер и не попадают в логи/репозиторий.
+
+**Приёмка:** ручной запуск unit'а завершается строками `backup complete` и `offsite upload complete`; в bucket появляются объекты `pohvala-postgres-*.dump.age`, удалённый retention держит заданное число архивов; выполнен первый реальный off-host restore drill из внешнего хранилища при недоступном VPS и записан в протокол [`docs/backup.md`](backup.md); после этого PH-704 закрывается целиком.
+
 ## Рекомендуемые релизы
 
 - **R0 / Foundation:** PH-001…105.
 - **R1 / Closed alpha:** PH-201, 203…206, 301…305, 601, 602, 604, 701–703.
-- **R2 / MVP:** PH-202, 401–403, 501–503, 704–706.
+- **R2 / MVP:** PH-202, 401–403, 501–503, 704–707.
 - **R2.1:** задачи P1 после обратной связи закрытой группы.
