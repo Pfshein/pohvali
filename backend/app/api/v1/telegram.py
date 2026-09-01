@@ -4,8 +4,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response, status
 
-from app.api.dependencies import ReplySenderDependency, SettingsDependency
+from app.api.dependencies import DatabaseSession, ReplySenderDependency, SettingsDependency
 from app.modules.bot.service import build_start_reply
+from app.modules.reminders.service import record_dm_available
 
 logger = logging.getLogger("app.telegram.webhook")
 
@@ -18,6 +19,7 @@ async def telegram_webhook(
     request: Request,
     settings: SettingsDependency,
     send_reply: ReplySenderDependency,
+    session: DatabaseSession,
     secret_token: Annotated[str | None, Header(alias="X-Telegram-Bot-Api-Secret-Token")] = None,
 ) -> Response:
     # An unguessable path hides the endpoint; the secret header proves the
@@ -34,6 +36,9 @@ async def telegram_webhook(
 
     reply = build_start_reply(update, mini_app_url=settings.app_domain)
     if reply is not None:
+        # A private-chat /start proves the user can receive bot DMs (PH-501).
+        # chat_id in a private chat is the user's Telegram id. Never logged.
+        await record_dm_available(session, telegram_id=reply.chat_id)
         await send_reply(reply)
 
     # Always acknowledge so Telegram does not retry a delivered update.
