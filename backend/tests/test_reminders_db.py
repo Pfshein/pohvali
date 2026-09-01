@@ -158,6 +158,7 @@ def test_reminder_states_migration_schema(database_url: str) -> None:
                 "dm_available",
                 "phase",
                 "phase_changed_at",
+                "last_reminded_on",
                 "updated_at",
             }
         finally:

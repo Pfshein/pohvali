@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Uuid, func, text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -47,6 +47,9 @@ class ReminderState(Base):
         nullable=False,
         server_default=func.now(),
     )
+    # The user's local date on which a reminder was last sent. Guards
+    # "one local day never gets two pushes" during candidate selection (PH-502).
+    last_reminded_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
