@@ -204,6 +204,12 @@ production вынесена в PH-707. До её выполнения PH-704 о�
 
 ### PH-706 · P0 · Privacy/legal launch gate
 
+**Статус:** выполнено — privacy policy публикуется по `/privacy.html`
+(`frontend/public/privacy.html`), удаление данных реализовано эндпоинтом
+`DELETE /api/v1/session` и панелью «Приватность и данные» в приложении,
+юрисдикция и data residency зафиксированы в [`docs/deploy.md`](deploy.md),
+раздел 12 (VPS и bucket в ЕС).
+
 **Приёмка:** определены юрисдикция и data residency; опубликованы privacy policy, deletion path и честное объяснение Telegram trust boundary/recovery limitations.
 
 ### PH-707 · P0 · Активация offsite backup на production

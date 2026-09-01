@@ -1,3 +1,4 @@
+from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,3 +22,15 @@ async def upsert_user(
     )
     result = await session.execute(statement)
     return result.scalar_one()
+
+
+async def delete_user_by_telegram_id(
+    session: AsyncSession,
+    *,
+    telegram_id: int,
+) -> bool:
+    statement = (
+        delete(User).where(User.telegram_id == telegram_id).returning(User.id)
+    )
+    result = await session.execute(statement)
+    return result.scalar_one_or_none() is not None

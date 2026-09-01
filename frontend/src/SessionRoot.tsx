@@ -13,6 +13,7 @@ import {
   telegramOnboardingStorage,
 } from "./lib/onboarding";
 import { activateMascot, loadCollection, purchaseMascot } from "./lib/mascots-api";
+import { deleteAccountData } from "./lib/account";
 import { loadDay, savePraise } from "./lib/praise-api";
 import { createRecoveryPhrase, restoreEncryptionKey } from "./lib/recovery-phrase";
 import { openSession } from "./lib/session";
@@ -164,6 +165,7 @@ export function SessionRoot({ client }: SessionRootProps) {
                 setKey(await restoreEncryptionKey(keyStorage, phrase));
               }
             : undefined}
+          onDeleteAccount={() => deleteAccountData(client)}
           mascotCollection={mascotCollection}
           onLoadCalendar={calendarLoader}
           onLoadDay={key ? (date) => loadDay(client, key, date) : undefined}

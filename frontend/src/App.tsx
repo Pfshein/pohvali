@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { CollectionPanel } from "./components/CollectionPanel";
 import { MonthCalendar } from "./components/MonthCalendar";
+import { PrivacyPanel } from "./components/PrivacyPanel";
 import { RecoveryAccess } from "./components/RecoveryAccess";
 import { StarArcHero } from "./components/StarArcHero";
 import type { PraiseCreated } from "./lib/api";
@@ -39,6 +40,7 @@ export interface AppProps {
   onSubmitPraise?: (text: string) => Promise<PraiseCreated>;
   onExportRecoveryPhrase?: () => Promise<string>;
   onImportRecoveryPhrase?: (phrase: string) => Promise<void>;
+  onDeleteAccount?: () => Promise<void>;
   mascotCollection?: MascotCollectionHandlers;
   onLoadCalendar?: (from: string, to: string) => Promise<CalendarDay[]>;
   onLoadDay?: (date: string) => Promise<DayEntry[]>;
@@ -53,6 +55,7 @@ export function App({
   onSubmitPraise,
   onExportRecoveryPhrase,
   onImportRecoveryPhrase,
+  onDeleteAccount,
   mascotCollection,
   onLoadCalendar,
   onLoadDay,
@@ -291,6 +294,7 @@ export function App({
           onImport={onImportRecoveryPhrase}
         />
       )}
+      {onDeleteAccount && <PrivacyPanel onDeleteAccount={onDeleteAccount} />}
 
       {isComposerOpen && (
         <div className="scrim" role="presentation" onMouseDown={() => setComposerOpen(false)}>

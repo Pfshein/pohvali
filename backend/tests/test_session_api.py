@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import hashlib
 import hmac
 import json
@@ -23,6 +24,16 @@ from tests.migration_safety import require_test_database_url
 RUN_DATABASE_TESTS = os.getenv("RUN_DATABASE_TESTS") == "1"
 BOT_TOKEN = "123456:TEST-TOKEN"
 TEST_TELEGRAM_IDS = (8_001_001, 8_001_002, 8_001_003)
+DELETION_MASCOT_CODE = "test_privacy_mascot"
+USER_DATA_TABLES = (
+    "users",
+    "praises",
+    "star_ledger",
+    "star_balances",
+    "reminder_states",
+    "mascot_unlocks",
+    "mascot_ownership",
+)
 
 
 def signed_init_data(*, telegram_id: int) -> str:
@@ -57,6 +68,79 @@ async def delete_test_users(database_url: str) -> None:
                 text("DELETE FROM users WHERE telegram_id = ANY(:telegram_ids)"),
                 {"telegram_ids": list(TEST_TELEGRAM_IDS)},
             )
+            await connection.execute(
+                text("DELETE FROM mascots WHERE code = :code"),
+                {"code": DELETION_MASCOT_CODE},
+            )
+    finally:
+        await engine.dispose()
+
+
+async def seed_deletion_extras(database_url: str, telegram_id: int) -> None:
+    """Insert reminder state and mascot ownership rows the API cannot create here."""
+    engine = create_async_engine(database_url)
+    try:
+        async with engine.begin() as connection:
+            user_id = (
+                await connection.execute(
+                    text("SELECT id FROM users WHERE telegram_id = :telegram_id"),
+                    {"telegram_id": telegram_id},
+                )
+            ).scalar_one()
+            await connection.execute(
+                text(
+                    "INSERT INTO reminder_states (user_id, phase) "
+                    "VALUES (:user_id, 'active')"
+                ),
+                {"user_id": user_id},
+            )
+            await connection.execute(
+                text(
+                    "INSERT INTO mascots "
+                    "(code, name, blurb, asset_path, starter, active, sort_order) "
+                    "VALUES (:code, 'Privacy test', 'deletion fixture', "
+                    "'/assets/privacy-test.png', false, true, 999)"
+                ),
+                {"code": DELETION_MASCOT_CODE},
+            )
+            await connection.execute(
+                text(
+                    "INSERT INTO mascot_ownership (user_id, mascot_code, price_paid) "
+                    "VALUES (:user_id, :code, 0)"
+                ),
+                {"user_id": user_id, "code": DELETION_MASCOT_CODE},
+            )
+    finally:
+        await engine.dispose()
+
+
+async def count_user_rows(database_url: str, telegram_id: int) -> dict[str, int]:
+    engine = create_async_engine(database_url)
+    try:
+        async with engine.connect() as connection:
+            user_id = (
+                await connection.execute(
+                    text("SELECT id FROM users WHERE telegram_id = :telegram_id"),
+                    {"telegram_id": telegram_id},
+                )
+            ).scalar_one_or_none()
+            if user_id is None:
+                return {table: 0 for table in USER_DATA_TABLES}
+            counts: dict[str, int] = {}
+            for table in USER_DATA_TABLES:
+                column = "id" if table == "users" else "user_id"
+                counts[table] = int(
+                    (
+                        await connection.execute(
+                            text(
+                                f"SELECT count(*) FROM {table} "
+                                f"WHERE {column} = :user_id"
+                            ),
+                            {"user_id": user_id},
+                        )
+                    ).scalar_one()
+                )
+            return counts
     finally:
         await engine.dispose()
 
@@ -215,3 +299,67 @@ def test_openapi_documents_required_telegram_authorization() -> None:
         "in": "header",
         "name": "Authorization",
     }
+
+
+@pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")
+def test_delete_session_erases_user_and_all_related_data(
+    client: TestClient,
+    database_url: str,
+) -> None:
+    headers = {
+        "Authorization": f"tma {signed_init_data(telegram_id=TEST_TELEGRAM_IDS[0])}"
+    }
+    assert (
+        client.post("/api/v1/session", headers=headers, json={"timezone": "UTC"}).status_code
+        == 200
+    )
+    praise = client.post(
+        "/api/v1/praises",
+        headers=headers,
+        json={
+            "body_ciphertext": base64.b64encode(b"opaque-ciphertext").decode(),
+            "iv": base64.b64encode(b"0123456789ab").decode(),
+        },
+    )
+    assert praise.status_code == 201
+    asyncio.run(seed_deletion_extras(database_url, TEST_TELEGRAM_IDS[0]))
+
+    before = asyncio.run(count_user_rows(database_url, TEST_TELEGRAM_IDS[0]))
+    assert before["users"] == 1
+    assert before["praises"] == 1
+    assert before["star_ledger"] == 1
+    assert before["star_balances"] == 1
+    assert before["reminder_states"] == 1
+    assert before["mascot_ownership"] == 1
+
+    response = client.delete("/api/v1/session", headers=headers)
+
+    assert response.status_code == 204
+    after = asyncio.run(count_user_rows(database_url, TEST_TELEGRAM_IDS[0]))
+    assert after == {table: 0 for table in USER_DATA_TABLES}
+
+
+@pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")
+def test_delete_session_is_idempotent_without_existing_profile(
+    client: TestClient,
+    database_url: str,
+) -> None:
+    response = client.delete(
+        "/api/v1/session",
+        headers={
+            "Authorization": f"tma {signed_init_data(telegram_id=TEST_TELEGRAM_IDS[1])}"
+        },
+    )
+
+    assert response.status_code == 204
+    assert asyncio.run(read_test_user(database_url, TEST_TELEGRAM_IDS[1])) == []
+
+
+def test_delete_session_requires_valid_authorization() -> None:
+    response = TestClient(app).delete(
+        "/api/v1/session",
+        headers={"Authorization": "tma auth_date=1&hash=tampered"},
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid Telegram authorization"}
