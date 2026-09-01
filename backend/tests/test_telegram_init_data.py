@@ -29,6 +29,23 @@ def signed_init_data(*, auth_date: datetime = NOW, telegram_id: object = 42) -> 
     return urlencode(values)
 
 
+def signed_init_data_with_signature(*, auth_date: datetime = NOW) -> str:
+    """Real Telegram initData carries a `signature` field, and `hash` is computed
+    over every field except `hash` — including `signature`."""
+    values = {
+        "auth_date": str(int(auth_date.timestamp())),
+        "query_id": "AAHdF6IQAAAAAN0XohDhrOrc",
+        "signature": "abcDEF123_-signature-ed25519",
+        "user": json.dumps({"id": 42, "first_name": "Друг"}, separators=(",", ":")),
+    }
+    data_check_string = "\n".join(f"{key}={values[key]}" for key in sorted(values))
+    secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+    values["hash"] = hmac.new(
+        secret_key, data_check_string.encode(), hashlib.sha256
+    ).hexdigest()
+    return urlencode(values)
+
+
 def test_accepts_valid_data_and_returns_only_minimal_identity() -> None:
     identity = validate_init_data(signed_init_data(), BOT_TOKEN, now=NOW)
 
@@ -36,6 +53,14 @@ def test_accepts_valid_data_and_returns_only_minimal_identity() -> None:
     assert identity.auth_date == NOW
     assert not hasattr(identity, "first_name")
     assert not hasattr(identity, "username")
+
+
+def test_accepts_real_data_with_signature_field_kept_in_the_check() -> None:
+    # Regression: `signature` must stay in the data-check-string. Dropping it
+    # made every real (signed) Telegram initData fail with 401.
+    identity = validate_init_data(signed_init_data_with_signature(), BOT_TOKEN, now=NOW)
+
+    assert identity.telegram_id == 42
 
 
 def test_rejects_tampered_data() -> None:
