@@ -188,6 +188,8 @@
 
 ### PH-705 · P0 · Production deploy runbook
 
+**Статус:** выполнено — см. [`docs/deploy.md`](deploy.md).
+
 **Приёмка:** DNS/TLS, webhook setup, migrate-before-start, rollback и health smoke test описаны; backend replicas зафиксированы в `1` из-за APScheduler.
 
 ### PH-706 · P0 · Privacy/legal launch gate

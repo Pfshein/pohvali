@@ -73,10 +73,15 @@ def test_production_requires_https_mini_app_cors() -> None:
     from app.core.config import Settings
 
     with pytest.raises(ValueError, match="CORS_ORIGINS"):
-        Settings(app_env="production", cors_origins="http://localhost")
+        Settings(
+            app_env="production",
+            app_domain="https://app.example.com",
+            cors_origins="http://localhost",
+        )
 
     ok = Settings(
         app_env="production",
+        app_domain="https://app.example.com",
         bot_token="123456:real-bot-token",
         telegram_webhook_secret="real-webhook-secret",
         telegram_webhook_path="real-webhook-path",
@@ -84,6 +89,26 @@ def test_production_requires_https_mini_app_cors() -> None:
         cors_origins="https://app.example.com",
     )
     assert ok.cors_origin_list == ["https://app.example.com"]
+
+
+def test_production_requires_public_app_domain_in_cors() -> None:
+    from app.core.config import Settings
+
+    values = {
+        "app_env": "production",
+        "app_domain": "https://app.example.com",
+        "bot_token": "123456:real-bot-token",
+        "telegram_webhook_secret": "real-webhook-secret",
+        "telegram_webhook_path": "real-webhook-path",
+        "database_url": "postgresql+asyncpg://pohvala:strong-password@postgres:5432/pohvala",
+        "cors_origins": "https://app.example.com",
+    }
+
+    with pytest.raises(ValueError, match="APP_DOMAIN"):
+        Settings(**(values | {"app_domain": "https://localhost"}))
+
+    with pytest.raises(ValueError, match="APP_DOMAIN"):
+        Settings(**(values | {"cors_origins": "https://other.example.com"}))
 
 
 @pytest.mark.parametrize(
@@ -104,6 +129,7 @@ def test_production_rejects_placeholder_secrets(field: str, value: str) -> None:
 
     values = {
         "app_env": "production",
+        "app_domain": "https://app.example.com",
         "bot_token": "123456:real-bot-token",
         "telegram_webhook_secret": "real-webhook-secret",
         "telegram_webhook_path": "real-webhook-path",

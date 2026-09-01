@@ -37,6 +37,12 @@ class Settings(BaseSettings):
         if self.app_env != "production":
             return self
 
+        app_domain = self.app_domain.rstrip("/")
+        if not app_domain.startswith("https://") or "localhost" in app_domain:
+            raise ValueError(
+                "production APP_DOMAIN must be the public https Mini App origin"
+            )
+
         origins = self.cors_origin_list
         if not origins or any(
             not origin.startswith("https://") or "localhost" in origin for origin in origins
@@ -44,6 +50,8 @@ class Settings(BaseSettings):
             raise ValueError(
                 "production CORS_ORIGINS must list only https Mini App origins (no localhost)"
             )
+        if app_domain not in {origin.rstrip("/") for origin in origins}:
+            raise ValueError("production APP_DOMAIN must be listed in CORS_ORIGINS")
 
         database_password = make_url(self.database_url).password or ""
         secret_values = (

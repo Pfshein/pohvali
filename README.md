@@ -297,9 +297,10 @@ Mini App (`web_app` на `APP_DOMAIN`). Другие сообщения и не-
 
 Зарегистрируйте webhook один раз для окружения после того, как backend доступен по HTTPS:
 
-```powershell
-cd backend
-python ../scripts/set_telegram_webhook.py
+```bash
+docker compose run --rm \
+  -v "$PWD/scripts:/srv/scripts:ro" \
+  backend python /srv/scripts/set_telegram_webhook.py
 ```
 
 Скрипт берёт `BOT_TOKEN`, `APP_DOMAIN`, `TELEGRAM_WEBHOOK_PATH` и `TELEGRAM_WEBHOOK_SECRET`
@@ -310,3 +311,4 @@ python ../scripts/set_telegram_webhook.py
 - [Product brief](docs/product-brief.md)
 - [Backlog MVP](docs/backlog.md)
 - [Definition of Done](docs/definition-of-done.md)
+- [Production deploy runbook](docs/deploy.md)
