@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from app.api.dependencies import DatabaseSession, MascotRateLimited, TelegramAuth
 from app.modules.mascots.schemas import (
@@ -12,6 +12,7 @@ from app.modules.mascots.service import (
     MascotNotFound,
     NotOwned,
     UserNotFound,
+    get_mascot_image,
     list_collection,
     purchase_mascot,
     set_active_mascot,
@@ -20,6 +21,29 @@ from app.modules.mascots.service import (
 router = APIRouter()
 
 _NO_SESSION = "Open a session before opening the collection"
+
+
+@router.get(
+    "/mascots/{code}/image",
+    response_class=Response,
+    responses={404: {"description": "Mascot image not found"}},
+    # Deliberately public: catalog artwork is not user data and <img> tags
+    # cannot send the Telegram authorization header. Seed mascots are already
+    # public static assets; this endpoint serves admin-added ones (PH-405).
+    include_in_schema=True,
+)
+async def get_mascot_image_endpoint(
+    code: str,
+    session: DatabaseSession,
+) -> Response:
+    image = await get_mascot_image(session, code=code)
+    if image is None:
+        raise HTTPException(status_code=404, detail="Mascot image not found")
+    return Response(
+        content=image,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.get(

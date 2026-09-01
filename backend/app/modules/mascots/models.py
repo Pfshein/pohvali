@@ -1,7 +1,17 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Uuid,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -18,6 +28,14 @@ class Mascot(Base):
     unlock_threshold: Mapped[int | None] = mapped_column(Integer, nullable=True, unique=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Admin-added mascots (PH-405) keep their PNG bytes in the database; seed
+    # mascots serve files from the frontend image. Deferred so catalog queries
+    # never drag the blobs along.
+    image_data: Mapped[bytes | None] = mapped_column(
+        LargeBinary,
+        nullable=True,
+        deferred=True,
+    )
 
     __table_args__ = (
         CheckConstraint(

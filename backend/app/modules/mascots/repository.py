@@ -69,6 +69,28 @@ async def get_mascot(session: AsyncSession, *, code: str) -> Mascot | None:
     return result.scalar_one_or_none()
 
 
+async def find_by_unlock_threshold(
+    session: AsyncSession,
+    *,
+    unlock_threshold: int,
+) -> Mascot | None:
+    result = await session.execute(
+        select(Mascot).where(Mascot.unlock_threshold == unlock_threshold)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_mascot_image_data(session: AsyncSession, *, code: str) -> bytes | None:
+    result = await session.execute(select(Mascot.image_data).where(Mascot.code == code))
+    return result.scalar_one_or_none()
+
+
+async def next_sort_order(session: AsyncSession) -> int:
+    result = await session.execute(select(func.max(Mascot.sort_order)))
+    current = result.scalar_one_or_none()
+    return (current or 0) + 1
+
+
 async def owned_codes(session: AsyncSession, *, user_id: UUID) -> set[str]:
     result = await session.execute(
         select(MascotOwnership.mascot_code).where(MascotOwnership.user_id == user_id)

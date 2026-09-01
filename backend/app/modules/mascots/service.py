@@ -13,6 +13,7 @@ from enum import StrEnum
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.mascots import repository as repo
+from app.modules.mascots.models import Mascot
 from app.modules.praises import repository as praise_repo
 
 
@@ -34,6 +35,14 @@ class InsufficientStars(Exception):
 
 class NotOwned(Exception):
     """The user tried to activate a mascot they do not own."""
+
+
+class MascotCodeTaken(Exception):
+    """An admin command tried to redefine an existing mascot code (PH-405)."""
+
+
+class ThresholdTaken(Exception):
+    """The unlock threshold is already used by another mascot (PH-405)."""
 
 
 class MascotState(StrEnum):
@@ -178,3 +187,68 @@ async def set_active_mascot(
             raise NotOwned
 
         await repo.set_active_mascot(session, user_id=user.id, code=code)
+
+
+def mascot_image_endpoint(code: str) -> str:
+    return f"/api/v1/mascots/{code}/image"
+
+
+async def add_mascot(
+    session: AsyncSession,
+    *,
+    code: str,
+    name: str,
+    blurb: str,
+    unlock_threshold: int,
+    image_data: bytes,
+) -> bool:
+    """Insert an admin-added mascot (PH-405).
+
+    Returns False when the exact same mascot already exists, which makes a
+    redelivered Telegram update idempotent. An existing code with different
+    data, or an already-used threshold, raises without changing anything.
+    Unique database constraints backstop the checks against races.
+    """
+    async with session.begin():
+        existing = await repo.get_mascot(session, code=code)
+        if existing is not None:
+            # image_data is deferred; fetch it explicitly instead of touching
+            # the attribute (implicit lazy loads are unavailable in async ORM).
+            existing_image = await repo.get_mascot_image_data(session, code=code)
+            identical = (
+                existing.name == name
+                and existing.blurb == blurb
+                and existing.unlock_threshold == unlock_threshold
+                and existing.starter is False
+                and existing.active is True
+                and existing_image == image_data
+            )
+            if identical:
+                return False
+            raise MascotCodeTaken(code)
+
+        clash = await repo.find_by_unlock_threshold(
+            session, unlock_threshold=unlock_threshold
+        )
+        if clash is not None:
+            raise ThresholdTaken(unlock_threshold)
+
+        session.add(
+            Mascot(
+                code=code,
+                name=name,
+                blurb=blurb,
+                asset_path=mascot_image_endpoint(code),
+                starter=False,
+                unlock_threshold=unlock_threshold,
+                sort_order=await repo.next_sort_order(session),
+                active=True,
+                image_data=image_data,
+            )
+        )
+        await session.flush()
+        return True
+
+
+async def get_mascot_image(session: AsyncSession, *, code: str) -> bytes | None:
+    return await repo.get_mascot_image_data(session, code=code)

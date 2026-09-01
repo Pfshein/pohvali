@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Protocol
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader
@@ -50,6 +50,38 @@ def get_reply_sender(settings: SettingsDependency) -> ReplySender:
 
 
 ReplySenderDependency = Annotated[ReplySender, Depends(get_reply_sender)]
+
+
+class FileDownloader(Protocol):
+    async def __call__(self, file_id: str) -> bytes: ...
+
+
+class AiogramFileDownloader:
+    """Download a Telegram file by id (admin mascot uploads, PH-405)."""
+
+    def __init__(self, bot_token: str) -> None:
+        self._bot_token = bot_token
+
+    async def __call__(self, file_id: str) -> bytes:
+        from io import BytesIO
+
+        from aiogram import Bot
+
+        bot = Bot(self._bot_token)
+        try:
+            file = await bot.get_file(file_id=file_id)
+            buffer = BytesIO()
+            await bot.download_file(file.file_path, destination=buffer)
+            return buffer.getvalue()
+        finally:
+            await bot.session.close()
+
+
+def get_file_downloader(settings: SettingsDependency) -> FileDownloader:
+    return AiogramFileDownloader(settings.bot_token)
+
+
+FileDownloaderDependency = Annotated[FileDownloader, Depends(get_file_downloader)]
 
 session_rate_limiter = FixedWindowRateLimiter(max_requests=30, window_seconds=60)
 praise_rate_limiter = FixedWindowRateLimiter(max_requests=60, window_seconds=60)

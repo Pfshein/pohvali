@@ -212,6 +212,10 @@ BOT_TOKEN=<token-from-BotFather>
 TELEGRAM_WEBHOOK_SECRET=<second-openssl-value>
 TELEGRAM_WEBHOOK_PATH=<third-openssl-value>
 
+# Telegram id владельца для admin-команды /add_mascot (PH-405).
+# Узнать свой id можно у @userinfobot. Несколько админов — через запятую.
+TELEGRAM_ADMIN_IDS=<your-telegram-id>
+
 POSTGRES_DB=pohvala
 POSTGRES_USER=pohvala
 POSTGRES_PASSWORD=<first-openssl-value>
@@ -374,6 +378,12 @@ git switch main
 
 - Логи каждого контейнера ограничены тремя файлами по 10 MB в `compose.yaml`.
 - Раз в неделю проверяйте `df -h`, `sudo docker compose ps -a` и health endpoint.
+- Нового маскота владелец добавляет без deploy и правки БД: в личном чате с
+  ботом отправьте PNG-документ (до 1 MiB, 256–1024 px, с alpha-каналом) с
+  подписью `/add_mascot <code> <порог> | <Имя> | <Описание>`. Команда работает
+  только для Telegram ID из `TELEGRAM_ADMIN_IDS`; повторная отправка того же
+  сообщения безопасна. Маскот сразу появляется в каталоге приложения, картинка
+  отдаётся с backend по `/api/v1/mascots/{code}/image`.
 - Установленные пакеты безопасности обновляет `unattended-upgrades`; reboot после
   обновления ядра выполняйте в запланированное окно и повторяйте smoke test.
 - База хранится в Docker volume `postgres_data`; удалять volumes командами

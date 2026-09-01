@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -27,6 +27,24 @@ class Settings(BaseSettings):
     telegram_webhook_path: str = "dev-webhook-path"
     database_url: str = "postgresql+asyncpg://pohvala:pohvala@localhost:5432/pohvala"
     cors_origins: str = "http://localhost:5173"
+    # Telegram ids allowed to use the admin /add_mascot command (PH-405).
+    # Comma-separated; empty means nobody is an admin.
+    telegram_admin_ids: str = ""
+
+    @field_validator("telegram_admin_ids")
+    @classmethod
+    def _validate_admin_ids(cls, value: str) -> str:
+        for part in value.split(","):
+            stripped = part.strip()
+            if stripped and not stripped.isdigit():
+                raise ValueError("TELEGRAM_ADMIN_IDS must be comma-separated Telegram ids")
+        return value
+
+    @property
+    def telegram_admin_id_set(self) -> frozenset[int]:
+        return frozenset(
+            int(part.strip()) for part in self.telegram_admin_ids.split(",") if part.strip()
+        )
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -20,6 +20,8 @@ def test_mascot_model_has_stable_catalog_fields() -> None:
         "unlock_threshold",
         "sort_order",
         "active",
+        # Admin-added mascots keep their PNG bytes in the database (PH-405).
+        "image_data",
     }
     assert isinstance(columns.code.type, String)
     assert columns.code.primary_key is True

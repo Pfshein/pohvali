@@ -27,3 +27,20 @@ OPEN_BUTTON_TEXT = "Открыть"
 # Guard words that must never appear in bot copy. Referenced by tone tests so a
 # future copy change cannot quietly reintroduce pressure wording.
 FORBIDDEN_TONE_WORDS = ("серия", "серию", "пропустил", "не потеряй", "не теряй")
+
+# Admin catalog maintenance (PH-405). Calm and specific: errors explain what
+# to fix without pressure and without revealing admin identities.
+ADD_MASCOT_DENIED = "Эта команда доступна только администратору сервиса."
+ADD_MASCOT_NEED_DOCUMENT = "Приложи PNG-файл документом к команде /add_mascot."
+ADD_MASCOT_TOO_BIG = "Файл больше 1 MiB — сожми PNG и попробуй ещё раз."
+ADD_MASCOT_RETRY_TEXT = "Не удалось получить файл. Можно спокойно попробовать ещё раз."
+ADD_MASCOT_ALREADY_TEXT = "Такой маскот уже есть в каталоге — ничего не изменилось."
+ADD_MASCOT_CREATED_PREFIX = "Готово: маскот добавлен в каталог и уже виден всем."
+ADD_MASCOT_FORMAT = "Формат: /add_mascot code порог | Имя | Описание"
+ADD_MASCOT_CODE_INVALID = (
+    "code должен быть 2–32 символа: маленькие латинские буквы, цифры и _, "
+    "начиная с буквы."
+)
+ADD_MASCOT_THRESHOLD_INVALID = "порог должен быть положительным целым числом."
+ADD_MASCOT_NAME_INVALID = "имя должно быть непустым и не длиннее 64 символов."
+ADD_MASCOT_BLURB_INVALID = "описание должно быть непустым и не длиннее 160 символов."
