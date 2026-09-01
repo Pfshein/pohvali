@@ -23,7 +23,13 @@ async def assert_users_schema_contract(database_url: str) -> None:
                 lambda sync_connection: inspect(sync_connection).get_columns("users")
             )
             column_names = {column["name"] for column in columns}
-            assert column_names == {"id", "telegram_id", "timezone", "created_at"}
+            assert column_names == {
+                "id",
+                "telegram_id",
+                "timezone",
+                "active_mascot_code",
+                "created_at",
+            }
             columns_by_name = {column["name"]: column for column in columns}
 
             assert str(columns_by_name["id"]["type"]) == "UUID"

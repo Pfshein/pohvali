@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, DateTime, String, Uuid, func, text
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -22,6 +22,11 @@ class User(Base):
         nullable=False,
         default="UTC",
         server_default=text("'UTC'"),
+    )
+    active_mascot_code: Mapped[str | None] = mapped_column(
+        String(32),
+        ForeignKey("mascots.code", ondelete="SET NULL"),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
