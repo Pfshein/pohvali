@@ -10,6 +10,7 @@ import {
   saveOnboarding,
   telegramOnboardingStorage,
 } from "./lib/onboarding";
+import { activateMascot, loadCollection, purchaseMascot } from "./lib/mascots-api";
 import { savePraise } from "./lib/praise-api";
 import { createRecoveryPhrase, restoreEncryptionKey } from "./lib/recovery-phrase";
 import { openSession } from "./lib/session";
@@ -98,6 +99,14 @@ export function SessionRoot({ client }: SessionRootProps) {
   const [key, setKey] = useState<CryptoKey | null>(null);
   const started = useRef(false);
   const keyStorage = useMemo(() => telegramKeyStorage(), []);
+  const mascotCollection = useMemo(
+    () => ({
+      load: () => loadCollection(client),
+      purchase: (code: string) => purchaseMascot(client, code),
+      activate: (code: string) => activateMascot(client, code),
+    }),
+    [client],
+  );
   const bootstrap = useMemo(
     () =>
       createAppBootstrap(
@@ -131,6 +140,7 @@ export function SessionRoot({ client }: SessionRootProps) {
                 setKey(await restoreEncryptionKey(keyStorage, phrase));
               }
             : undefined}
+          mascotCollection={mascotCollection}
         />}
       </OnboardingGate>
     );

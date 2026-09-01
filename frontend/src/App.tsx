@@ -1,10 +1,12 @@
 import { useState } from "react";
 
+import { CollectionPanel } from "./components/CollectionPanel";
 import { MonthCalendar } from "./components/MonthCalendar";
 import { RecoveryAccess } from "./components/RecoveryAccess";
 import { StarArcHero } from "./components/StarArcHero";
 import type { PraiseCreated } from "./lib/api";
 import { findMascot, unlockedMascotMessage } from "./lib/mascots";
+import type { MascotCollection, PurchaseOutcome } from "./lib/mascots-api";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
 
 const PRAISED_DAYS = new Set([2, 5, 9, 14, 18, 23, 27]);
@@ -22,12 +24,19 @@ function shiftMonth(current: { year: number; month: number }, delta: number): {
   };
 }
 
+export interface MascotCollectionHandlers {
+  load: () => Promise<MascotCollection>;
+  purchase: (code: string) => Promise<PurchaseOutcome>;
+  activate: (code: string) => Promise<void>;
+}
+
 interface AppProps {
   firstName?: string;
   mascotCode?: string;
   onSubmitPraise?: (text: string) => Promise<PraiseCreated>;
   onExportRecoveryPhrase?: () => Promise<string>;
   onImportRecoveryPhrase?: (phrase: string) => Promise<void>;
+  mascotCollection?: MascotCollectionHandlers;
 }
 
 export function App({
@@ -36,9 +45,11 @@ export function App({
   onSubmitPraise,
   onExportRecoveryPhrase,
   onImportRecoveryPhrase,
+  mascotCollection,
 }: AppProps = {}) {
   const mascot = findMascot(mascotCode);
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [isCollectionOpen, setCollectionOpen] = useState(false);
   const [praise, setPraise] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
   const [isSaving, setSaving] = useState(false);
@@ -118,6 +129,25 @@ export function App({
           Написать
         </button>
       </section>
+
+      {mascotCollection && (
+        <section className="collection-entry">
+          <button
+            className="secondary-button"
+            aria-expanded={isCollectionOpen}
+            onClick={() => setCollectionOpen((open) => !open)}
+          >
+            {isCollectionOpen ? "Свернуть коллекцию" : "Коллекция спутников"}
+          </button>
+          {isCollectionOpen && (
+            <CollectionPanel
+              load={mascotCollection.load}
+              purchase={mascotCollection.purchase}
+              activate={mascotCollection.activate}
+            />
+          )}
+        </section>
+      )}
 
       <p className="privacy-note">🔒 Текст шифруется на этом устройстве до отправки.</p>
       {onExportRecoveryPhrase && onImportRecoveryPhrase && (
