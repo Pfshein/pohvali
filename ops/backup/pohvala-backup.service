@@ -1,0 +1,30 @@
+[Unit]
+Description=Pohvala encrypted PostgreSQL backup
+Requires=docker.service
+After=docker.service
+ConditionPathIsDirectory=/opt/pohvali
+ConditionFileNotEmpty=/etc/pohvali-backup/recipients.txt
+ConditionFileIsExecutable=/usr/local/libexec/pohvala-backup/backup.sh
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/opt/pohvali
+EnvironmentFile=-/etc/pohvali-backup/config
+ExecStart=/usr/local/libexec/pohvala-backup/backup.sh
+TimeoutStartSec=2h
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadOnlyPaths=/etc/pohvali-backup /opt/pohvali /usr/local/libexec/pohvala-backup
+ReadWritePaths=/var/backups/pohvali/postgres
+
+[Install]
+WantedBy=multi-user.target

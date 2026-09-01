@@ -378,6 +378,9 @@ git switch main
   обновления ядра выполняйте в запланированное окно и повторяйте smoke test.
 - База хранится в Docker volume `postgres_data`; удалять volumes командами
   `docker compose down -v` или `docker volume rm` на production нельзя.
+- Для закрытой альфы настройте локальный зашифрованный backup и выполните первый
+  restore drill по [`docs/backup.md`](backup.md). Backup запускается host-side
+  systemd timer и не добавляет долгоживущий Compose-сервис.
 - Snapshot провайдера не заменяет внешний backup. До публичного запуска нужно
   закрыть PH-704: ежедневный зашифрованный dump во внешнее хранилище и реальный
   restore drill.
