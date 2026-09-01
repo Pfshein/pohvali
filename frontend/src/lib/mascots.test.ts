@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { findMascot, MASCOTS, STARTER_MASCOTS } from "./mascots";
+import { findMascot, MASCOTS, STARTER_MASCOTS, unlockedMascotMessage } from "./mascots";
 
 describe("mascot catalog", () => {
   it("contains six unique stable codes and three starter choices", () => {
@@ -22,5 +22,12 @@ describe("mascot catalog", () => {
 
   it("falls back to the first starter for an unknown stored code", () => {
     expect(findMascot("old-code").code).toBe("ava");
+  });
+
+  it("turns newly unlocked codes into a calm user-facing message", () => {
+    expect(unlockedMascotMessage(["tisha"])).toBe(
+      "Открылся новый спутник — Капибара Тиша",
+    );
+    expect(unlockedMascotMessage(["unknown"])).toBeNull();
   });
 });

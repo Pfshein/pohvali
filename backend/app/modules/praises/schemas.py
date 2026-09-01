@@ -59,6 +59,7 @@ class PraiseCreated(BaseModel):
     local_date: date
     star_awarded: bool
     balance: int
+    newly_unlocked: list[str]
 
 
 class CalendarDay(BaseModel):

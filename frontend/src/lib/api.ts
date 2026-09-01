@@ -17,4 +17,5 @@ export interface PraiseCreated {
   local_date: string;
   star_awarded: boolean;
   balance: number;
+  newly_unlocked: string[];
 }

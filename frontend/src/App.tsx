@@ -3,7 +3,8 @@ import { useState } from "react";
 import { MonthCalendar } from "./components/MonthCalendar";
 import { RecoveryAccess } from "./components/RecoveryAccess";
 import { StarArcHero } from "./components/StarArcHero";
-import { findMascot } from "./lib/mascots";
+import type { PraiseCreated } from "./lib/api";
+import { findMascot, unlockedMascotMessage } from "./lib/mascots";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
 
 const PRAISED_DAYS = new Set([2, 5, 9, 14, 18, 23, 27]);
@@ -24,7 +25,7 @@ function shiftMonth(current: { year: number; month: number }, delta: number): {
 interface AppProps {
   firstName?: string;
   mascotCode?: string;
-  onSubmitPraise?: (text: string) => Promise<unknown>;
+  onSubmitPraise?: (text: string) => Promise<PraiseCreated>;
   onExportRecoveryPhrase?: () => Promise<string>;
   onImportRecoveryPhrase?: (phrase: string) => Promise<void>;
 }
@@ -69,8 +70,8 @@ export function App({
 
     setSaving(true);
     try {
-      await onSubmitPraise(text);
-      setSavedMessage("Сохранили ⭐");
+      const result = await onSubmitPraise(text);
+      setSavedMessage(unlockedMascotMessage(result.newly_unlocked) ?? "Сохранили ⭐");
       setPraise("");
       setComposerOpen(false);
     } catch {

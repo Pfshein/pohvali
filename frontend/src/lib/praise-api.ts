@@ -45,6 +45,9 @@ export async function savePraise(
     || typeof payload.star_awarded !== "boolean"
     || !("balance" in payload)
     || typeof payload.balance !== "number"
+    || !("newly_unlocked" in payload)
+    || !Array.isArray(payload.newly_unlocked)
+    || !payload.newly_unlocked.every((code) => typeof code === "string")
   ) {
     throw new Error("Could not save praise");
   }
@@ -54,6 +57,7 @@ export async function savePraise(
     local_date: payload.local_date,
     star_awarded: payload.star_awarded,
     balance: payload.balance,
+    newly_unlocked: payload.newly_unlocked,
   };
 }
 

@@ -14,7 +14,15 @@ async def seed_mascot_catalog(session: AsyncSession) -> None:
     statement = insert(Mascot).values(rows)
     update_columns = {
         column: getattr(statement.excluded, column)
-        for column in ("name", "blurb", "asset_path", "starter", "sort_order", "active")
+        for column in (
+            "name",
+            "blurb",
+            "asset_path",
+            "starter",
+            "unlock_threshold",
+            "sort_order",
+            "active",
+        )
     }
     await session.execute(
         statement.on_conflict_do_update(index_elements=[Mascot.code], set_=update_columns)

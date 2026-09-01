@@ -56,3 +56,11 @@ export const STARTER_MASCOTS = MASCOTS.filter((mascot) => mascot.starter);
 export function findMascot(code: string | null | undefined): Mascot {
   return MASCOTS.find((mascot) => mascot.code === code) ?? STARTER_MASCOTS[0]!;
 }
+
+export function unlockedMascotMessage(codes: readonly string[]): string | null {
+  const names = codes.flatMap((code) => {
+    const mascot = MASCOTS.find((candidate) => candidate.code === code);
+    return mascot ? [mascot.name] : [];
+  });
+  return names.length > 0 ? `Открылся новый спутник — ${names.join(", ")}` : null;
+}

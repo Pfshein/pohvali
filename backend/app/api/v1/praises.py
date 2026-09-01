@@ -64,6 +64,7 @@ async def create_praise_endpoint(
         local_date=result.local_date,
         star_awarded=result.star_awarded,
         balance=result.balance,
+        newly_unlocked=list(result.newly_unlocked),
     )
 
 

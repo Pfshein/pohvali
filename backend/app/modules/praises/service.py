@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.mascots import repository as mascot_repo
 from app.modules.praises import repository as repo
 
 
@@ -23,6 +24,7 @@ class PraiseResult:
     local_date: date
     star_awarded: bool
     balance: int
+    newly_unlocked: tuple[str, ...]
 
 
 def local_date_in_timezone(timezone: str, moment: datetime) -> date:
@@ -58,12 +60,19 @@ async def create_praise(
         if star_awarded:
             await repo.increment_balance(session, user_id=user.id)
         balance = await repo.get_balance(session, user_id=user.id)
+        earned_stars = await mascot_repo.get_earned_daily_stars(session, user_id=user.id)
+        newly_unlocked = await mascot_repo.unlock_eligible_mascots(
+            session,
+            user_id=user.id,
+            earned_stars=earned_stars,
+        )
 
     return PraiseResult(
         id=praise.id,
         local_date=local_date,
         star_awarded=star_awarded,
         balance=balance,
+        newly_unlocked=tuple(newly_unlocked),
     )
 
 

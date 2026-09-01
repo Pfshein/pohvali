@@ -18,7 +18,13 @@ describe("praise submission", () => {
   it("encrypts locally and saves with a single authorized round-trip", async () => {
     const key = await generateEncryptionKey();
     const fetcher = vi.fn(async () => new Response(
-      JSON.stringify({ id: "p1", local_date: "2026-09-01", star_awarded: true, balance: 1 }),
+      JSON.stringify({
+        id: "p1",
+        local_date: "2026-09-01",
+        star_awarded: true,
+        balance: 10,
+        newly_unlocked: ["tisha"],
+      }),
       { status: 201, headers: { "Content-Type": "application/json" } },
     ));
 
@@ -37,7 +43,8 @@ describe("praise submission", () => {
       id: "p1",
       local_date: "2026-09-01",
       star_awarded: true,
-      balance: 1,
+      balance: 10,
+      newly_unlocked: ["tisha"],
     });
   });
 

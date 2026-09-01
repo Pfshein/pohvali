@@ -1,10 +1,13 @@
 import base64
+from datetime import date
 from unittest.mock import AsyncMock, patch
+from uuid import UUID
 
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import get_db_session, get_telegram_identity
 from app.main import app
+from app.modules.praises.service import PraiseResult
 from app.security.telegram import TelegramIdentity
 
 
@@ -38,6 +41,31 @@ def test_oversized_ciphertext_is_rejected_before_the_service() -> None:
 
     assert response.status_code == 413
     service.assert_not_called()
+
+
+def test_create_returns_newly_unlocked_mascot_codes() -> None:
+    app.dependency_overrides[get_telegram_identity] = override_identity
+    app.dependency_overrides[get_db_session] = override_session
+    result = PraiseResult(
+        id=UUID("00000000-0000-0000-0000-000000000010"),
+        local_date=date(2026, 9, 1),
+        star_awarded=True,
+        balance=10,
+        newly_unlocked=("tisha",),
+    )
+
+    with patch("app.api.v1.praises.create_praise", new=AsyncMock(return_value=result)):
+        response = TestClient(app).post(
+            "/api/v1/praises",
+            headers={"Authorization": "tma ignored"},
+            json={
+                "body_ciphertext": base64.b64encode(b"ciphertext").decode(),
+                "iv": base64.b64encode(bytes(12)).decode(),
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["newly_unlocked"] == ["tisha"]
 
 
 def test_missing_authorization_returns_401() -> None:
