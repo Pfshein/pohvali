@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.mascots import repository as mascot_repo
 from app.modules.praises import repository as repo
+from app.modules.reminders import repository as reminder_repo
 
 
 class UserNotFound(Exception):
@@ -66,6 +67,8 @@ async def create_praise(
             user_id=user.id,
             earned_stars=earned_stars,
         )
+        # Writing a praise is re-engagement: reset any faded reminder to active.
+        await reminder_repo.reactivate_on_praise(session, user_id=user.id)
 
     return PraiseResult(
         id=praise.id,

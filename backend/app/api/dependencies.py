@@ -54,6 +54,7 @@ ReplySenderDependency = Annotated[ReplySender, Depends(get_reply_sender)]
 session_rate_limiter = FixedWindowRateLimiter(max_requests=30, window_seconds=60)
 praise_rate_limiter = FixedWindowRateLimiter(max_requests=60, window_seconds=60)
 mascot_rate_limiter = FixedWindowRateLimiter(max_requests=30, window_seconds=60)
+reminder_rate_limiter = FixedWindowRateLimiter(max_requests=30, window_seconds=60)
 
 
 def _enforce(limiter: FixedWindowRateLimiter, identity: TelegramIdentity) -> TelegramIdentity:
@@ -77,6 +78,11 @@ def enforce_mascot_rate_limit(identity: TelegramAuth) -> TelegramIdentity:
     return _enforce(mascot_rate_limiter, identity)
 
 
+def enforce_reminder_rate_limit(identity: TelegramAuth) -> TelegramIdentity:
+    return _enforce(reminder_rate_limiter, identity)
+
+
 SessionRateLimited = Annotated[TelegramIdentity, Depends(enforce_session_rate_limit)]
 PraiseRateLimited = Annotated[TelegramIdentity, Depends(enforce_praise_rate_limit)]
 MascotRateLimited = Annotated[TelegramIdentity, Depends(enforce_mascot_rate_limit)]
+ReminderRateLimited = Annotated[TelegramIdentity, Depends(enforce_reminder_rate_limit)]
