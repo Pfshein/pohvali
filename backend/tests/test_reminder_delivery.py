@@ -73,3 +73,14 @@ def test_reminder_messages_stay_calm_and_pressure_free() -> None:
         lowered = text.casefold()
         for word in FORBIDDEN_TONE_WORDS:
             assert word.casefold() not in lowered
+
+
+def test_reminder_entry_url_marks_entry_from_reminder() -> None:
+    from app.modules.reminders.sender import reminder_entry_url
+
+    assert reminder_entry_url("https://app.example.com") == (
+        "https://app.example.com/?from=reminder"
+    )
+    assert reminder_entry_url("https://app.example.com/") == (
+        "https://app.example.com/?from=reminder"
+    )

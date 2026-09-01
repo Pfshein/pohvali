@@ -14,6 +14,17 @@ import {
 } from "./lib/onboarding";
 import { activateMascot, loadCollection, purchaseMascot } from "./lib/mascots-api";
 import { deleteAccountData } from "./lib/account";
+import {
+  enteredFromReminder,
+  loadReminderOfferAnswered,
+  markReminderOfferAnswered,
+  telegramReminderOfferStorage,
+} from "./lib/reminder-offer";
+import {
+  loadReminderSettings,
+  setRemindersEnabled,
+  type ReminderControls,
+} from "./lib/reminders-api";
 import { loadDay, savePraise } from "./lib/praise-api";
 import { createRecoveryPhrase, restoreEncryptionKey } from "./lib/recovery-phrase";
 import { openSession } from "./lib/session";
@@ -114,9 +125,11 @@ export function BootstrapScreen({
 export function SessionRoot({ client }: SessionRootProps) {
   const [phase, setPhase] = useState<AppPhase>("loading");
   const [key, setKey] = useState<CryptoKey | null>(null);
+  const [reminderOfferVisible, setReminderOfferVisible] = useState(false);
   const started = useRef(false);
   const keyStorage = useMemo(() => telegramKeyStorage(), []);
   const onboardingStorage = useMemo(() => telegramOnboardingStorage(), []);
+  const reminderOfferStorage = useMemo(() => telegramReminderOfferStorage(), []);
   const mascotCollection = useMemo(
     () => ({
       load: () => loadCollection(client),
@@ -132,6 +145,41 @@ export function SessionRoot({ client }: SessionRootProps) {
     () => (from: string, to: string) => loadCalendar(client, from, to),
     [client],
   );
+  const reminderControls = useMemo<ReminderControls>(
+    () => ({
+      load: () => loadReminderSettings(client),
+      setEnabled: (enabled: boolean) => setRemindersEnabled(client, enabled),
+    }),
+    [client],
+  );
+  const reminderOffer = useMemo(() => {
+    if (!reminderOfferVisible) return undefined;
+    return {
+      onAnswer: async (accepted: boolean) => {
+        // The answer itself must stick even if the server sync hiccups; the
+        // settings switch keeps showing and fixing the live server state.
+        try {
+          await setRemindersEnabled(client, accepted);
+        } catch {
+          // Best-effort sync: never re-ask because of a network error.
+        }
+        await markReminderOfferAnswered(reminderOfferStorage);
+        setReminderOfferVisible(false);
+      },
+    };
+  }, [client, reminderOfferStorage, reminderOfferVisible]);
+
+  useEffect(() => {
+    let active = true;
+    void loadReminderOfferAnswered(reminderOfferStorage).then((answered) => {
+      if (!active) return;
+      const fromReminder = enteredFromReminder(window.location.search);
+      setReminderOfferVisible(!answered && !fromReminder);
+    });
+    return () => {
+      active = false;
+    };
+  }, [reminderOfferStorage]);
   const bootstrap = useMemo(
     () =>
       createAppBootstrap(
@@ -167,6 +215,8 @@ export function SessionRoot({ client }: SessionRootProps) {
             : undefined}
           onDeleteAccount={() => deleteAccountData(client)}
           mascotCollection={mascotCollection}
+          reminderOffer={reminderOffer}
+          reminderControls={reminderControls}
           onLoadCalendar={calendarLoader}
           onLoadDay={key ? (date) => loadDay(client, key, date) : undefined}
         />}

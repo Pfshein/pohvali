@@ -445,6 +445,51 @@ h2 { font-size: 1.2rem; line-height: 1.25; color: var(--ink); }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
+/* Reminder offer and settings (PH-504) — calm, one quiet question. */
+.reminder-card {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.reminder-card h2 { margin: 0; font-size: var(--text-md); }
+.reminder-card__copy { margin: 0; color: var(--muted); font-size: var(--text-sm); line-height: 1.5; }
+.reminder-card__actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.reminder-card__message { margin: 0; color: var(--muted); font-size: var(--text-sm); text-align: center; }
+.reminder-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.reminder-settings h2 { margin: 0; font-size: var(--text-md); }
+.reminder-settings__copy { margin: 4px 0 0; color: var(--muted); font-size: var(--text-sm); line-height: 1.45; }
+.reminder-settings__hint { margin: 6px 0 0; color: var(--muted); font-size: 0.72rem; line-height: 1.4; }
+.reminder-switch {
+  flex: none;
+  min-width: 104px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(71, 113, 90, 0.24);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--green-strong);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+.reminder-switch[aria-checked="true"] { background: var(--green); border-color: rgba(71, 113, 90, 0.35); }
+.reminder-switch:disabled { opacity: 0.6; cursor: default; }
+.reminder-switch:focus-visible { outline: 3px solid var(--lavender); outline-offset: 2px; }
+
 @media (max-width: 390px) {
   .mascot-hero { height: 310px; }
   .mascot-hero__image { top: 58px; width: 164px; height: 232px; }
@@ -455,4 +500,6 @@ h2 { font-size: 1.2rem; line-height: 1.25; color: var(--ink); }
   .gentle-prompt > div { max-width: 65%; }
   .gentle-prompt h2 { font-size: 1.05rem; }
   .primary-button { padding-inline: 15px; }
+  .reminder-card__actions { grid-template-columns: 1fr; }
+  .reminder-settings { flex-direction: column; align-items: flex-start; }
 }

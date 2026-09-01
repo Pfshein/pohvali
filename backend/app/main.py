@@ -13,7 +13,7 @@ from app.core.logging import AccessLogMiddleware, configure_logging
 from app.modules.bot.messages import OPEN_BUTTON_TEXT
 from app.modules.reminders.delivery import deliver_reminders
 from app.modules.reminders.scheduler import build_reminder_scheduler
-from app.modules.reminders.sender import AiogramReminderSender
+from app.modules.reminders.sender import AiogramReminderSender, reminder_entry_url
 
 
 def create_app() -> FastAPI:
@@ -27,7 +27,7 @@ def create_app() -> FastAPI:
         scheduler = None
         if settings.app_env != "test":
             sender = AiogramReminderSender(
-                settings.bot_token, settings.app_domain, OPEN_BUTTON_TEXT
+                settings.bot_token, reminder_entry_url(settings.app_domain), OPEN_BUTTON_TEXT
             )
             deliver = partial(deliver_reminders, sender=sender, sleep=asyncio.sleep)
             scheduler = build_reminder_scheduler(get_session_factory(), deliver=deliver)

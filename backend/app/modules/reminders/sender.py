@@ -25,6 +25,15 @@ class ReminderSender(Protocol):
     async def __call__(self, *, chat_id: int, text: str) -> None: ...
 
 
+def reminder_entry_url(app_domain: str) -> str:
+    """Mini App URL used by reminder buttons (PH-504).
+
+    The ``from=reminder`` marker lets the app skip its one-time reminder offer
+    when the user arrives from a nudge — they already receive them.
+    """
+    return f"{app_domain.rstrip('/')}/?from=reminder"
+
+
 class AiogramReminderSender:
     """Send a reminder with the inline button that opens the Mini App."""
 

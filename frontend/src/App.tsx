@@ -4,6 +4,8 @@ import { CollectionPanel } from "./components/CollectionPanel";
 import { MonthCalendar } from "./components/MonthCalendar";
 import { PrivacyPanel } from "./components/PrivacyPanel";
 import { RecoveryAccess } from "./components/RecoveryAccess";
+import { ReminderOffer } from "./components/ReminderOffer";
+import { ReminderSettings } from "./components/ReminderSettings";
 import { StarArcHero } from "./components/StarArcHero";
 import type { PraiseCreated } from "./lib/api";
 import {
@@ -17,6 +19,7 @@ import {
 import { findMascot, unlockedMascotMessage } from "./lib/mascots";
 import type { MascotCollection, PurchaseOutcome } from "./lib/mascots-api";
 import { russianMonthNameGenitive, russianMonthNamePrepositional } from "./lib/month-grid";
+import type { ReminderControls } from "./lib/reminders-api";
 import type { DayEntry } from "./lib/praise-api";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
 
@@ -42,6 +45,10 @@ export interface AppProps {
   onImportRecoveryPhrase?: (phrase: string) => Promise<void>;
   onDeleteAccount?: () => Promise<void>;
   mascotCollection?: MascotCollectionHandlers;
+  reminderOffer?: {
+    onAnswer: (accepted: boolean) => Promise<void>;
+  };
+  reminderControls?: ReminderControls;
   onLoadCalendar?: (from: string, to: string) => Promise<CalendarDay[]>;
   onLoadDay?: (date: string) => Promise<DayEntry[]>;
   initialViewMonth?: MonthRef;
@@ -57,6 +64,8 @@ export function App({
   onImportRecoveryPhrase,
   onDeleteAccount,
   mascotCollection,
+  reminderOffer,
+  reminderControls,
   onLoadCalendar,
   onLoadDay,
   initialViewMonth,
@@ -267,6 +276,10 @@ export function App({
           Написать
         </button>
       </section>
+
+      {reminderOffer && <ReminderOffer onAnswer={reminderOffer.onAnswer} />}
+
+      {reminderControls && <ReminderSettings controls={reminderControls} />}
 
       {mascotCollection && (
         <section className="collection-entry">
