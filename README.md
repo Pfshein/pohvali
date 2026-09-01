@@ -171,6 +171,36 @@ PH-401 добавляет шесть маскотов со стабильным�
 покупка не закрывает уже доступного спутника. Проверка и запись в `mascot_unlocks` выполняются
 в транзакции создания похвалы; новые коды возвращаются в `newly_unlocked`.
 
+## Покупка и выбор маскота
+
+`GET /api/v1/mascots` возвращает каталог с состоянием для текущего пользователя и его
+расходуемый баланс:
+
+```json
+{
+  "balance": 12,
+  "active_mascot": "ava",
+  "mascots": [
+    {"code": "ava", "starter": true, "price": null, "state": "owned", "unlocked": true, "active": true},
+    {"code": "tisha", "starter": false, "price": 10, "state": "affordable", "unlocked": true, "active": false}
+  ]
+}
+```
+
+Состояния: `owned` (starter — бесплатно у всех — или уже купленный), `affordable`
+(порог достигнут и хватает баланса), `locked` (порог ещё не достигнут либо не хватает звёзд).
+
+`POST /api/v1/mascots/{code}/purchase` покупает не-starter маскота за `unlock_threshold` звёзд.
+Списание баланса, запись владения и запись в ledger (`reason='purchase'`) выполняются в одной
+транзакции. Строка баланса блокируется через `SELECT … FOR UPDATE` до проверки владения, поэтому
+конкурентные запросы не могут потратить одни и те же звёзды дважды. Повторная покупка идемпотентна
+и не списывает баланс (`newly_purchased=false`). Пока порог не достигнут — `409` (locked); при
+нехватке звёзд — `409` (insufficient). Заработанные daily-звёзды (пороги PH-402) не расходуются
+при покупке — списывается только `balance`.
+
+`PUT /api/v1/mascots/{code}/active` делает маскота активным. Активировать можно только owned
+(starter или купленного); иначе `409`. Выбор хранится в `users.active_mascot_code`.
+
 ## Календарь
 
 `GET /api/v1/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD` возвращает отмеченные дни текущего
@@ -185,8 +215,9 @@ PH-401 добавляет шесть маскотов со стабильным�
 - **Авторизация.** Каждый пользовательский запрос требует свежий Telegram `initData`; чужой или
   несуществующий `id` записи даёт одинаковый `404` (без раскрытия существования). См. матрицу в
   `backend/tests/test_authorization_matrix.py`.
-- **Rate limit.** `POST /session` (30/мин) и `POST /praises` (60/мин) ограничены in-memory лимитером
-  по Telegram-id (один инстанс backend, без Redis); превышение — `429`.
+- **Rate limit.** `POST /session` (30/мин), `POST /praises` (60/мин) и запись маскотов
+  (`purchase`/`active`, 30/мин) ограничены in-memory лимитером по Telegram-id (один инстанс
+  backend, без Redis); превышение — `429`.
 - **CORS.** В production приложение не стартует, если `CORS_ORIGINS` содержит не-https или localhost
   (допускается только origin Mini App).
 - **Логи.** Caddy access-log отключён (не хранит IP). Backend пишет по одной JSON-строке на запрос:

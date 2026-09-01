@@ -16,7 +16,7 @@ def test_user_model_persists_only_the_minimal_identity() -> None:
         "language_code",
     }
 
-    assert columns == {"id", "telegram_id", "timezone", "created_at"}
+    assert columns == {"id", "telegram_id", "timezone", "active_mascot_code", "created_at"}
     assert columns.isdisjoint(forbidden_pii)
 
 

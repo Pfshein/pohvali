@@ -46,3 +46,35 @@ class MascotUnlock(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+
+class MascotOwnership(Base):
+    """A mascot a user has acquired by spending stars.
+
+    Starter mascots are free and owned implicitly, so they never get a row here;
+    only purchased (non-starter) mascots are recorded. `price_paid` keeps the star
+    cost at purchase time for an auditable, append-only ownership trail.
+    """
+
+    __tablename__ = "mascot_ownership"
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    mascot_code: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("mascots.code", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    price_paid: Mapped[int] = mapped_column(Integer, nullable=False)
+    acquired_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    __table_args__ = (
+        CheckConstraint("price_paid >= 0", name="price_non_negative"),
+    )
