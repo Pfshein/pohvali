@@ -17,4 +17,4 @@
 - Run backend checks with `pytest` and `ruff check .` from `backend/`.
 - Do not claim completion without running the relevant checks.
 - Do not add Redis, Celery, queues, Kubernetes, microservices, AI, analytics SDKs, or a custom auth token to the MVP.
-
+- In Codex Cloud/Work, publish through the connected GitHub connector. If a plain HTTPS `git push` lacks local credentials, do not search for tokens or SSH keys; create blobs/tree/commit and fast-forward the branch ref through the connector.
