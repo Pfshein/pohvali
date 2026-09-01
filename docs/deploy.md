@@ -236,31 +236,20 @@ sudo docker compose config --quiet
 
 ## 6. Первый запуск
 
-Сначала соберите образы и запустите только PostgreSQL:
+Одна команда собирает образы, поднимает PostgreSQL, применяет миграции и сид
+маскотов (сервис `migrate`) и только затем стартует backend, frontend и Caddy:
 
 ```bash
 cd /opt/pohvali
-sudo docker compose build --pull
-sudo docker compose up -d postgres
+sudo docker compose up -d --build
 sudo docker compose ps
+sudo docker compose logs --tail=100 caddy backend migrate
 ```
 
-Примените миграции **до** старта новой версии backend, затем идемпотентно
-синхронизируйте каталог маскотов:
-
-```bash
-sudo docker compose run --rm backend alembic upgrade head
-sudo docker compose run --rm backend python -m app.modules.mascots.seed
-sudo docker compose run --rm backend alembic current
-```
-
-Теперь запустите весь стек:
-
-```bash
-sudo docker compose up -d --remove-orphans
-sudo docker compose ps
-sudo docker compose logs --tail=100 caddy backend
-```
+Сервис `migrate` — одноразовый: он завершается с кодом 0 после `alembic upgrade
+head` и идемпотентного сида каталога маскотов, и `backend` стартует только после
+его успешного завершения. В `docker compose ps` он отображается как `exited (0)`
+— это нормально.
 
 Не используйте `--scale backend`. Caddy автоматически запросит TLS-сертификат;
 DNS и открытые порты 80/443 должны уже указывать на этот VPS.
@@ -340,8 +329,9 @@ curl -fsS https://app.example.com/api/v1/health
 
 ## 9. Обновление production
 
-Каждый деплой сохраняет SHA предыдущей версии, делает только fast-forward,
-собирает образы, применяет миграции и лишь затем заменяет работающие контейнеры:
+Каждый деплой сохраняет SHA предыдущей версии, делает только fast-forward и одной
+командой пересобирает образы, применяет миграции и сид (сервис `migrate`) и лишь
+затем заменяет работающие контейнеры:
 
 ```bash
 cd /opt/pohvali
@@ -350,11 +340,7 @@ git fetch origin main
 git rev-parse HEAD > .deploy-previous
 git merge --ff-only origin/main
 sudo docker compose config --quiet
-sudo docker compose build --pull
-sudo docker compose up -d postgres
-sudo docker compose run --rm backend alembic upgrade head
-sudo docker compose run --rm backend python -m app.modules.mascots.seed
-sudo docker compose up -d --remove-orphans
+sudo docker compose up -d --build --remove-orphans
 sudo docker compose ps
 curl -fsS https://app.example.com/api/v1/health
 ```
@@ -370,8 +356,7 @@ curl -fsS https://app.example.com/api/v1/health
 ```bash
 cd /opt/pohvali
 git checkout --detach "$(cat .deploy-previous)"
-sudo docker compose build
-sudo docker compose up -d --remove-orphans
+sudo docker compose up -d --build --remove-orphans
 sudo docker compose ps
 curl -fsS https://app.example.com/api/v1/health
 ```

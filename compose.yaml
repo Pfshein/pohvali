@@ -6,6 +6,15 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-development}
+  APP_DOMAIN: ${APP_DOMAIN:-http://localhost}
+  BOT_TOKEN: ${BOT_TOKEN:-dev-token}
+  TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-dev-webhook-secret}
+  TELEGRAM_WEBHOOK_PATH: ${TELEGRAM_WEBHOOK_PATH:-dev-webhook-path}
+  DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://pohvala:pohvala@postgres:5432/pohvala}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:5173}
+
 services:
   caddy:
     image: caddy:2.10-alpine
@@ -35,23 +44,31 @@ services:
     restart: unless-stopped
     logging: *default-logging
 
+  migrate:
+    image: pohvala-backend:latest
+    build:
+      context: ./backend
+    restart: "no"
+    logging: *default-logging
+    environment: *backend-env
+    command: ["sh", "-c", "alembic upgrade head && python -m app.modules.mascots.seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend:
+    image: pohvala-backend:latest
     build:
       context: ./backend
     restart: unless-stopped
     # Keep exactly one replica: APScheduler runs inside this process.
     logging: *default-logging
-    environment:
-      APP_ENV: ${APP_ENV:-development}
-      APP_DOMAIN: ${APP_DOMAIN:-http://localhost}
-      BOT_TOKEN: ${BOT_TOKEN:-dev-token}
-      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-dev-webhook-secret}
-      TELEGRAM_WEBHOOK_PATH: ${TELEGRAM_WEBHOOK_PATH:-dev-webhook-path}
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://pohvala:pohvala@postgres:5432/pohvala}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:5173}
+    environment: *backend-env
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 10s

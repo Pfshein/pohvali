@@ -12,12 +12,13 @@ Telegram Mini App, где человек за 15–20 секунд замеча�
 
 ## Быстрый старт
 
-1. Скопируйте `.env.example` в `.env` и замените секреты.
-2. Соберите образы: `docker compose build`.
-3. Примените схему: `docker compose run --rm backend alembic upgrade head`.
-4. Запустите сервисы: `docker compose up -d`.
-5. Откройте `http://localhost`.
-6. Backend healthcheck доступен по `http://localhost/api/v1/health`.
+1. Скопируйте `.env.example` в `.env` и замените секреты. Для локального запуска
+   держите `APP_DOMAIN=http://localhost` (иначе Caddy локально попытается выпустить
+   TLS-сертификат для внешнего домена).
+2. Поднимите всё одной командой: `docker compose up -d --build`. Она собирает
+   образы, применяет миграции и сид маскотов (сервис `migrate`) и стартует стек.
+3. Откройте `http://localhost`.
+4. Backend healthcheck доступен по `http://localhost/api/v1/health`.
 
 Для быстрой разработки интерфейса без Telegram:
 
@@ -79,8 +80,10 @@ docker compose run --rm backend alembic upgrade head
 docker compose run --rm backend alembic current
 ```
 
-В production миграции выполняются отдельным шагом между сборкой образов и
-`docker compose up -d`. Приложение не вызывает `create_all()` и не изменяет схему при старте.
+Миграции применяются автоматически one-shot сервисом `migrate` при
+`docker compose up -d --build`, до старта backend. Приложение не вызывает
+`create_all()` и не изменяет схему при старте. Команды `alembic upgrade head` и
+`alembic current` выше остаются доступны для ручной проверки.
 
 Не выполняйте `alembic downgrade base` в production: baseline downgrade удаляет таблицу
 `users` вместе с данными. Для отката приложения сохраняйте совместимость схемы и делайте
@@ -165,8 +168,9 @@ Content-Type: application/json
 PH-401 добавляет шесть маскотов со стабильными кодами и ассетами в
 `frontend/public/assets/mascots`. Ава, Поль и Мира доступны как бесплатный стартовый выбор;
 Тиша, Луми и Бим подготовлены для последующих разблокировок. Миграция создаёт и наполняет
-таблицу `mascots`; повторно синхронизировать каталог безопасно командой
-`docker compose run --rm backend python -m app.modules.mascots.seed`.
+таблицу `mascots`. Сид выполняется автоматически сервисом `migrate` при
+`docker compose up -d --build`; повторно синхронизировать каталог вручную безопасно
+командой `docker compose run --rm backend python -m app.modules.mascots.seed`.
 
 Пороговые маскоты открываются по общему числу заработанных daily-звёзд: Тиша на 10, Луми
 на 30, Бим на 100. Текущий расходуемый баланс на разблокировку не влияет, поэтому будущая
