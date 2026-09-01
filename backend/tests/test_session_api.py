@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.core.config import Settings, get_settings
 from app.main import app
 from app.modules.users.service import open_session
 from tests.migration_safety import require_test_database_url
@@ -118,9 +119,16 @@ def database_url() -> Iterator[str]:
 
 @pytest.fixture(scope="module")
 def client(database_url: str) -> Iterator[TestClient]:
-    del database_url
-    with TestClient(app) as test_client:
-        yield test_client
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        app_env="test",
+        bot_token=BOT_TOKEN,
+        database_url=database_url,
+    )
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
 
 
 @pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")

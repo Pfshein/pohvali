@@ -87,6 +87,13 @@ def database_url() -> Iterator[str]:
     asyncio.run(cleanup(url))
 
 
+@pytest.fixture(autouse=True)
+def isolate_test_users(database_url: str) -> Iterator[None]:
+    asyncio.run(cleanup(database_url))
+    yield
+    asyncio.run(cleanup(database_url))
+
+
 async def make_active(factory: async_sessionmaker, telegram_id: int) -> None:
     async with factory() as session:
         await open_session(session, telegram_id=telegram_id, timezone="Europe/Moscow")
