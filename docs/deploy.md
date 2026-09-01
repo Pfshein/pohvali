@@ -242,13 +242,13 @@ sudo docker compose config --quiet
 ```bash
 cd /opt/pohvali
 sudo docker compose up -d --build
-sudo docker compose ps
+sudo docker compose ps -a
 sudo docker compose logs --tail=100 caddy backend migrate
 ```
 
 Сервис `migrate` — одноразовый: он завершается с кодом 0 после `alembic upgrade
 head` и идемпотентного сида каталога маскотов, и `backend` стартует только после
-его успешного завершения. В `docker compose ps` он отображается как `exited (0)`
+его успешного завершения. В `docker compose ps -a` он отображается как `exited (0)`
 — это нормально.
 
 Не используйте `--scale backend`. Caddy автоматически запросит TLS-сертификат;
@@ -298,7 +298,7 @@ HTTPS URL.
 
 ```bash
 cd /opt/pohvali
-sudo docker compose ps
+sudo docker compose ps -a
 curl -fsS https://app.example.com/api/v1/health
 sudo docker compose logs --since=10m backend caddy
 df -h
@@ -323,7 +323,7 @@ sudo reboot
 
 ```bash
 cd /opt/pohvali
-sudo docker compose ps
+sudo docker compose ps -a
 curl -fsS https://app.example.com/api/v1/health
 ```
 
@@ -341,7 +341,7 @@ git rev-parse HEAD > .deploy-previous
 git merge --ff-only origin/main
 sudo docker compose config --quiet
 sudo docker compose up -d --build --remove-orphans
-sudo docker compose ps
+sudo docker compose ps -a
 curl -fsS https://app.example.com/api/v1/health
 ```
 
@@ -357,7 +357,7 @@ curl -fsS https://app.example.com/api/v1/health
 cd /opt/pohvali
 git checkout --detach "$(cat .deploy-previous)"
 sudo docker compose up -d --build --remove-orphans
-sudo docker compose ps
+sudo docker compose ps -a
 curl -fsS https://app.example.com/api/v1/health
 ```
 
@@ -373,7 +373,7 @@ git switch main
 ## 11. Эксплуатационный минимум
 
 - Логи каждого контейнера ограничены тремя файлами по 10 MB в `compose.yaml`.
-- Раз в неделю проверяйте `df -h`, `sudo docker compose ps` и health endpoint.
+- Раз в неделю проверяйте `df -h`, `sudo docker compose ps -a` и health endpoint.
 - Установленные пакеты безопасности обновляет `unattended-upgrades`; reboot после
   обновления ядра выполняйте в запланированное окно и повторяйте smoke test.
 - База хранится в Docker volume `postgres_data`; удалять volumes командами

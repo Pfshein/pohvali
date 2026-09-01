@@ -46,8 +46,6 @@ services:
 
   migrate:
     image: pohvala-backend:latest
-    build:
-      context: ./backend
     restart: "no"
     logging: *default-logging
     environment: *backend-env

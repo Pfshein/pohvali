@@ -6,7 +6,8 @@ Telegram Mini App, где человек за 15–20 секунд замеча�
 
 - React + TypeScript + Vite frontend shell;
 - FastAPI backend с `/health`, проверкой Telegram `initData`, `POST /api/v1/session` и Telegram webhook (`/start`);
-- PostgreSQL, Caddy и четыре сервиса в Docker Compose;
+- четыре долгоживущих сервиса Docker Compose: frontend, backend, PostgreSQL и Caddy;
+- one-shot сервис `migrate` для миграций и сида перед запуском backend;
 - unit-тесты для локальной валидации, AES-GCM и Telegram-подписи;
 - приоритизированный backlog MVP с критериями приёмки.
 

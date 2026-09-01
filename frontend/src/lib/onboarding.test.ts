@@ -98,4 +98,39 @@ describe("telegramOnboardingStorage", () => {
     expect(backing.get("onboarding_mascot")).toBe("mira");
     expect(await storage.get()).toBe("mira");
   });
+
+  it("reads the local fallback when CloudStorage has no value", async () => {
+    const local = fakeLocalStorage();
+    local.setItem("pohvala.onboarding.mascot", "ava");
+    const cloud = {
+      getItem: (_key: string, cb: (error: Error | null, value?: string) => void) =>
+        cb(null, undefined),
+      setItem: (_key: string, _value: string, cb?: (error: Error | null) => void) =>
+        cb?.(null),
+    };
+    vi.stubGlobal("localStorage", local);
+    vi.stubGlobal("window", { Telegram: { WebApp: { CloudStorage: cloud } } });
+
+    expect(await telegramOnboardingStorage().get()).toBe("ava");
+  });
+
+  it("falls back to localStorage when CloudStorage declines a write", async () => {
+    const local = fakeLocalStorage();
+    const cloud = {
+      getItem: (_key: string, cb: (error: Error | null, value?: string) => void) =>
+        cb(null, undefined),
+      setItem: (
+        _key: string,
+        _value: string,
+        cb?: (error: Error | null, stored?: boolean) => void,
+      ) => cb?.(null, false),
+    };
+    vi.stubGlobal("localStorage", local);
+    vi.stubGlobal("window", { Telegram: { WebApp: { CloudStorage: cloud } } });
+
+    const storage = telegramOnboardingStorage();
+    await storage.set("mira");
+
+    expect(local.getItem("pohvala.onboarding.mascot")).toBe("mira");
+  });
 });

@@ -7,7 +7,9 @@
 - Praise bodies are encrypted in the browser. Backend code must treat ciphertext as opaque bytes.
 - Persist only the minimum described in `docs/product-brief.md`. Never persist Telegram names, usernames, avatars, language, request bodies, or client IPs.
 - The server decides `local_date`; clients never submit a praise date.
-- Keep the MVP a modular monolith and a four-service Docker Compose deployment.
+- Keep the MVP a modular monolith with four long-running Docker Compose services
+  (frontend, backend, PostgreSQL, Caddy). One-shot operational jobs such as
+  migrations are allowed.
 
 ## Engineering workflow
 

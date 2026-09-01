@@ -46,12 +46,13 @@ export function telegramOnboardingStorage(): OnboardingStorage {
     get: async () => {
       if (cloud) {
         try {
-          return await new Promise<string | null>((resolve, reject) => {
+          const value = await new Promise<string | null>((resolve, reject) => {
             cloud.getItem("onboarding_mascot", (error, value) => {
               if (error) reject(error);
               else resolve(value || null);
             });
           });
+          if (value) return value;
         } catch {
           // Fall back to device-local storage when CloudStorage is unsupported.
         }
@@ -62,8 +63,9 @@ export function telegramOnboardingStorage(): OnboardingStorage {
       if (cloud) {
         try {
           await new Promise<void>((resolve, reject) => {
-            cloud.setItem("onboarding_mascot", value, (error) => {
+            cloud.setItem("onboarding_mascot", value, (error, stored) => {
               if (error) reject(error);
+              else if (stored === false) reject(new Error("CloudStorage declined the write"));
               else resolve();
             });
           });

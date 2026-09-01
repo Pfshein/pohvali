@@ -17,7 +17,8 @@
 7. В базе нет имени, username, языка и аватарки. Логи не содержат IP, тела запросов и ciphertext.
 8. Календарь возвращает только локальные даты с отметками, без содержимого.
 9. Напоминания в 22:00 затухают: `active → dormant → silent`.
-10. Один VPS, один backend instance, PostgreSQL, Caddy и статический frontend.
+10. Один VPS и четыре долгоживущих сервиса: один backend instance, PostgreSQL,
+    Caddy и статический frontend. Операционные one-shot jobs допустимы.
 
 ## Нефункциональные цели
 

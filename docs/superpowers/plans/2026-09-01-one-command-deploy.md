@@ -57,8 +57,6 @@ x-backend-env: &backend-env
 ```yaml
   migrate:
     image: pohvala-backend:latest
-    build:
-      context: ./backend
     restart: "no"
     logging: *default-logging
     environment: *backend-env
@@ -93,7 +91,9 @@ x-backend-env: &backend-env
       retries: 5
 ```
 
-Пояснение: `image: pohvala-backend:latest` на обоих сервисах (`migrate` и `backend`) с одинаковым `build.context` гарантирует, что образ собирается один раз и переиспользуется — `migrate` не тянет вторую сборку.
+Пояснение: `build.context` объявлен только у `backend`, поэтому Compose создаёт
+одну build-цель `pohvala-backend:latest`; `migrate` использует готовый образ и
+не создаёт вторую build-цель.
 
 - [ ] **Step 4: Проверить, что конфиг валиден и якоря раскрылись**
 
@@ -125,13 +125,13 @@ git commit -m "feat: one-shot migrate service for single-command startup"
 ```bash
 cd /opt/pohvali
 sudo docker compose up -d --build
-sudo docker compose ps
+sudo docker compose ps -a
 sudo docker compose logs --tail=100 caddy backend migrate
 ```
 
 Сервис `migrate` — одноразовый: он завершается с кодом 0 после `alembic upgrade
 head` и идемпотентного сида каталога маскотов, и `backend` стартует только после
-его успешного завершения. В `docker compose ps` он отображается как `exited (0)`
+его успешного завершения. В `docker compose ps -a` он отображается как `exited (0)`
 — это нормально.
 
 Не используйте `--scale backend`. Caddy автоматически запросит TLS-сертификат;
@@ -150,7 +150,7 @@ git rev-parse HEAD > .deploy-previous
 git merge --ff-only origin/main
 sudo docker compose config --quiet
 sudo docker compose up -d --build --remove-orphans
-sudo docker compose ps
+sudo docker compose ps -a
 curl -fsS https://app.example.com/api/v1/health
 ```
 
@@ -170,7 +170,7 @@ curl -fsS https://app.example.com/api/v1/health
 cd /opt/pohvali
 git checkout --detach "$(cat .deploy-previous)"
 sudo docker compose up -d --build --remove-orphans
-sudo docker compose ps
+sudo docker compose ps -a
 curl -fsS https://app.example.com/api/v1/health
 ```
 

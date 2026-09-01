@@ -30,7 +30,8 @@ docker compose up -d --build
 
 ### 1. Новый one-shot сервис `migrate`
 
-- Собирается из того же контекста, что `backend` (`build: context: ./backend`).
+- Использует образ `pohvala-backend:latest`, который один раз собирает сервис
+  `backend` (`build: context: ./backend`).
 - `command: ["sh", "-c", "alembic upgrade head && python -m app.modules.mascots.seed"]`
 - `depends_on: postgres → condition: service_healthy`
 - `restart: "no"` — отрабатывает и выходит с кодом 0.
@@ -80,6 +81,8 @@ x-backend-env: &backend-env
 ## Что НЕ меняется
 
 - Сервисы `caddy`, `frontend`, `postgres`, их healthcheck'и, logging.
+- Четыре долгоживущих сервиса deployment; `migrate` — операционная one-shot job,
+  а не дополнительный постоянно работающий процесс.
 - Требование ровно одной реплики `backend` (внутри APScheduler напоминаний).
 - Регистрация webhook (`scripts/set_telegram_webhook.py`) — отдельная команда на
   проде, запускается один раз после того, как HTTPS поднялся, и при смене
@@ -115,8 +118,8 @@ build образов
 - `docker compose config --quiet` — конфиг валиден, якоря раскрываются, секреты не
   печатаются.
 - Локальный `docker compose up -d --build`:
-  - `migrate` завершился с кодом 0 (`docker compose ps` показывает exited 0);
-  - `docker compose ps` — postgres/backend healthy, caddy/frontend up;
+  - `migrate` завершился с кодом 0 (`docker compose ps -a` показывает exited 0);
+  - `docker compose ps -a` — postgres/backend healthy, caddy/frontend up;
   - `curl -fsS http://localhost/api/v1/health` → `{"status":"ok"}`.
 - Повторный `up -d --build` без изменений схемы — `migrate` отрабатывает как no-op,
   стек остаётся здоровым (проверка идемпотентности).
