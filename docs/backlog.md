@@ -291,9 +291,9 @@ PostgreSQL integration и остальные quality gates зелёные.
 
 **Границы:** bootstrap (генерация секретов, атомарный `.env` 600, производные
 значения, `getMe`/webhook/menu button, назначение первого админа через
-существующий `set_role`); релиз из `main` (flock, dirty-guard, CI-гейт зелёного
-коммита с обходом, ff-only, бэкап перед миграцией, пересборка+миграции,
-повторная проверка webhook без сброса pending); тегирование образов по git SHA;
+существующий `set_role`); релиз из `main` (flock, dirty-guard, ff-only, бэкап
+перед миграцией, пересборка+миграции, повторная проверка webhook без сброса
+pending); тегирование образов по git SHA;
 подкоманды `status`, `logs`, `rollback` (только код/образы, без авто-downgrade
 БД), отдельный `rotate-secrets`; перенос Telegram-настройщика внутрь
 backend-пакета. НЕ входят: `vX.Y.Z`/changelog/GitHub Releases, публикация

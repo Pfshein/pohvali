@@ -234,33 +234,6 @@ telegram_cmd() {
   docker compose exec -T backend python -m app.modules.telegram.setup "$@"
 }
 
-# Query GitHub's combined status API for a commit; returns via $?:
-#   0  green (or API unreachable — degrade to a warning, never block)
-#   1  red/pending and not overridden — caller must die
-check_ci_status() {
-  local sha="$1" repo="${DEPLOY_GITHUB_REPO:-Pfshein/pohvali}" response state
-  if ! response="$(curl -fsS --max-time 10 -H 'Accept: application/vnd.github+json' \
-      "https://api.github.com/repos/${repo}/commits/${sha}/status" 2>/dev/null)"; then
-    log "WARNING: GitHub API unreachable — skipping the CI gate for ${sha:0:12}."
-    return 0
-  fi
-  state="$(printf '%s' "$response" | grep -o '"state":"[a-z]*"' | head -n1 | cut -d'"' -f4)"
-  case "$state" in
-    success | "")
-      [[ -n "$state" ]] || log "WARNING: no CI status found for ${sha:0:12} — continuing."
-      return 0
-      ;;
-    *)
-      if [[ "${ALLOW_RED:-0}" == "1" ]]; then
-        log "CI status is '${state}' for ${sha:0:12} — continuing (--allow-red)."
-        return 0
-      fi
-      log "CI status is '${state}' for ${sha:0:12}."
-      return 1
-      ;;
-  esac
-}
-
 # Best-effort: drop local pohvala-{backend,frontend} images except the ones
 # tagged with the given SHAs (plus :latest, used by local dev).
 prune_old_images() {
