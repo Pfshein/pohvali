@@ -2,8 +2,12 @@
 .env.*
 !.env.example
 !frontend/.env.development
-.deploy-current
-.deploy-previous
+# Runtime state deploy.sh writes into the project root (.deploy-current,
+# .deploy-previous, .deploy-backups/, .deploy.lock). release() refuses to
+# deploy while `git status --porcelain` reports anything, untracked files
+# included, so any artifact left here blocks every later release. Matched by
+# prefix so a new one does not have to be discovered by a failed deploy.
+.deploy-*
 .deploy.lock
 .idea/
 .vscode/
