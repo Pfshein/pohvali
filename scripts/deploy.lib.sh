@@ -69,6 +69,63 @@ current_domain() {
   printf '%s\n' "${APP_DOMAIN%/}"
 }
 
+# Write $content (already fully rendered) to $ENV_FILE atomically at
+# mode 600: temp file in the same directory, then rename. Never overwrites
+# an existing .env — callers must check beforehand.
+write_env_atomic() {
+  local content="$1" tmp
+  [[ ! -e "$ENV_FILE" ]] || die "refusing to overwrite existing $ENV_FILE"
+  umask 077
+  tmp="$(mktemp "${ENV_FILE}.XXXXXX")"
+  printf '%s\n' "$content" > "$tmp"
+  chmod 600 "$tmp"
+  mv -f -- "$tmp" "$ENV_FILE"
+}
+
+# ---------------------------------------------------------------------------
+# Input validation (pure — no prompting, so these are directly testable)
+# ---------------------------------------------------------------------------
+
+# Normalize a user-entered domain to "https://host", rejecting anything that
+# is not a plausible public HTTPS hostname. A bare host ("app.example.com")
+# is accepted and gets "https://" prepended; an explicit non-https scheme
+# ("http://…") is rejected rather than silently rewritten.
+normalize_domain() {
+  local raw="$1" domain host
+  raw="${raw%"${raw##*[![:space:]]}"}"   # trim trailing whitespace
+  raw="${raw#"${raw%%[![:space:]]*}"}"   # trim leading whitespace
+  [[ -n "$raw" ]] || return 1
+
+  if [[ "$raw" =~ ^[A-Za-z][A-Za-z0-9+.-]*:// ]]; then
+    [[ "$raw" == https://* ]] || return 1
+    domain="$raw"
+  else
+    domain="https://${raw}"
+  fi
+  domain="${domain%/}"
+
+  host="${domain#https://}"
+  [[ -n "$host" && "$host" != *"/"* ]] || return 1
+  [[ "$host" != *"localhost"* ]] || return 1
+  [[ "$host" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$ ]] || return 1
+
+  printf '%s\n' "$domain"
+}
+
+# A BotFather token is non-empty, whitespace-free, and shaped "digits:rest".
+validate_token() {
+  local token="$1"
+  [[ -n "$token" && "$token" != *[[:space:]]* && "$token" == *:* ]]
+}
+
+# Empty is valid (skip first-admin assignment); otherwise a positive integer.
+validate_admin_id() {
+  local raw="$1"
+  [[ -z "$raw" ]] && return 0
+  [[ "$raw" =~ ^[0-9]+$ ]] || return 1
+  (( 10#$raw > 0 ))
+}
+
 # ---------------------------------------------------------------------------
 # Docker Compose / release-state helpers
 # ---------------------------------------------------------------------------
