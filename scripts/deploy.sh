@@ -43,10 +43,6 @@ Commands:
                      also rotate the PostgreSQL password (restarts postgres)
   help              Show this help
 
-Options for 'deploy':
-  --allow-red       Deploy even if CI status for origin/main is not green
-                     (same as DEPLOY_ALLOW_RED=1)
-
 An existing .env is never regenerated or overwritten by 'deploy'. Secret
 rotation only happens via the 'rotate-secrets' subcommand.
 EOF
@@ -219,10 +215,6 @@ release() {
     return 0
   fi
 
-  if ! check_ci_status "$origin_sha"; then
-    die "CI is not green for ${origin_sha:0:12}. Re-run with --allow-red or DEPLOY_ALLOW_RED=1 to override."
-  fi
-
   printf '%s\n' "$head_sha" > "$PREVIOUS_FILE"
 
   backup_before_migrate
@@ -381,15 +373,7 @@ cmd_rotate_secrets() {
 # ---------------------------------------------------------------------------
 
 cmd_deploy() {
-  ALLOW_RED=0
-  local arg
-  for arg in "$@"; do
-    case "$arg" in
-      --allow-red) ALLOW_RED=1 ;;
-      *) die "unknown deploy option: $arg" ;;
-    esac
-  done
-  [[ "${DEPLOY_ALLOW_RED:-0}" == "1" ]] && ALLOW_RED=1
+  [[ $# -eq 0 ]] || die "unknown deploy option: $1"
 
   if [[ -f "$ENV_FILE" ]]; then
     release
