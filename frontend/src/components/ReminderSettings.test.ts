@@ -19,8 +19,8 @@ describe("reminder settings", () => {
     }));
 
     expect(markup).toContain('aria-checked="true"');
-    expect(markup).toContain("Напоминания");
-    expect(markup).toContain("Включены");
+    expect(markup).toContain("Напоминание");
+    expect(markup).toContain("Включено");
   });
 
   it("reflects the disabled state", () => {
@@ -30,7 +30,7 @@ describe("reminder settings", () => {
     }));
 
     expect(markup).toContain('aria-checked="false"');
-    expect(markup).toContain("Выключены");
+    expect(markup).toContain("Выключено");
   });
 
   it("explains the bot-chat requirement only when pushes are impossible", () => {
