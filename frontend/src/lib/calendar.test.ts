@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { dateInMonth, loadCalendar, markedDaysForMonth, monthRange } from "./calendar";
+import {
+  dateInMonth,
+  isFutureIsoDate,
+  loadCalendar,
+  markedDaysForMonth,
+  monthRange,
+  todayIsoDate,
+} from "./calendar";
 import type { TelegramClient } from "./telegram";
 
 function fakeClient(): TelegramClient {
@@ -20,6 +27,26 @@ describe("calendar loading", () => {
       to: "2028-02-29",
     });
     expect(dateInMonth({ year: 2026, month: 9 }, 3)).toBe("2026-09-03");
+  });
+
+  it("reads today from the client clock in local time, not UTC", () => {
+    // 2026-09-02 23:30 in a UTC+3 zone is still 2026-09-02 for the client,
+    // even though UTC has already rolled over to the 3rd.
+    const lateEvening = new Date(2026, 8, 2, 23, 30);
+
+    expect(todayIsoDate(lateEvening)).toBe("2026-09-02");
+  });
+
+  it("treats only days after the client's today as future", () => {
+    const now = new Date(2026, 8, 2, 12, 0);
+
+    expect(isFutureIsoDate("2026-09-03", now)).toBe(true);
+    expect(isFutureIsoDate("2026-10-01", now)).toBe(true);
+    expect(isFutureIsoDate("2027-01-01", now)).toBe(true);
+    expect(isFutureIsoDate("2026-09-02", now)).toBe(false);
+    expect(isFutureIsoDate("2026-09-01", now)).toBe(false);
+    expect(isFutureIsoDate("2026-08-31", now)).toBe(false);
+    expect(isFutureIsoDate("2025-12-31", now)).toBe(false);
   });
 
   it("maps only marked dates from the requested month", () => {

@@ -11,6 +11,7 @@ import type { PraiseCreated } from "./lib/api";
 import {
   currentMonth,
   dateInMonth,
+  isFutureIsoDate,
   markedDaysForMonth,
   monthRange,
   type CalendarDay,
@@ -22,6 +23,13 @@ import { russianMonthNameGenitive, russianMonthNamePrepositional } from "./lib/m
 import type { ReminderControls } from "./lib/reminders-api";
 import { dayEntriesAfterSave, type DayEntry } from "./lib/praise-api";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
+
+/**
+ * Shown instead of saving when the selected day has not arrived yet. A praise
+ * always lands on the day it is written, so a future day can never be its
+ * target — refusing up front beats a "saved" toast for a day that stays empty.
+ */
+const FUTURE_DAY_MESSAGE = "Этот день ещё впереди. Похвалить себя можно за сегодня или за прошедшие дни.";
 
 function shiftMonth(current: MonthRef, delta: number): MonthRef {
   const zeroBased = current.month - 1 + delta;
@@ -87,6 +95,10 @@ export function App({
   const [dayEntries, setDayEntries] = useState<DayEntry[] | null>(null);
   const [dayError, setDayError] = useState(false);
   const canSave = isValidPraise(praise);
+  const selectedDate = selectedDay === null ? null : dateInMonth(viewMonth, selectedDay);
+  // Judged against the client's own clock, so a user in a zone where the day
+  // has not turned over yet is not refused their own today.
+  const isFutureDaySelected = selectedDate !== null && isFutureIsoDate(selectedDate);
 
   const markedDays = useMemo(
     () => markedDaysForMonth(calendarDays, viewMonth),
@@ -176,6 +188,13 @@ export function App({
 
   async function handleSave() {
     if (!canSave || isSaving) return;
+
+    if (isFutureDaySelected) {
+      setSavedMessage(FUTURE_DAY_MESSAGE);
+      window.setTimeout(() => setSavedMessage(""), 3600);
+      return;
+    }
+
     const text = normalizePraise(praise);
 
     if (!onSubmitPraise) {
@@ -198,12 +217,7 @@ export function App({
           ? { ...day, count: day.count + 1 }
           : day);
       });
-      setDayEntries((entries) => dayEntriesAfterSave(
-        entries,
-        selectedDay === null ? null : dateInMonth(viewMonth, selectedDay),
-        result,
-        text,
-      ));
+      setDayEntries((entries) => dayEntriesAfterSave(entries, selectedDate, result, text));
       setPraise("");
       setComposerOpen(false);
     } catch {
@@ -326,8 +340,15 @@ export function App({
           >
             <div className="composer__handle" />
             <button className="composer__close" onClick={() => setComposerOpen(false)} aria-label="Закрыть">×</button>
-            <p className="eyebrow">Сегодня</p>
+            <p className="eyebrow">
+              {isFutureDaySelected
+                ? `${selectedDay} ${russianMonthNameGenitive(viewMonth.month)}`
+                : "Сегодня"}
+            </p>
             <h2 id="composer-title">Похвала тоже считается</h2>
+            {isFutureDaySelected && (
+              <p className="inline-note" role="status">{FUTURE_DAY_MESSAGE}</p>
+            )}
             <textarea
               autoFocus
               maxLength={MAX_PRAISE_LENGTH}
