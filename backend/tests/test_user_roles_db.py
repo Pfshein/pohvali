@@ -1,5 +1,6 @@
 """Database role contract tests (run with an isolated PostgreSQL instance)."""
 
+import asyncio
 import os
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -25,7 +26,7 @@ async def database_session() -> AsyncIterator[AsyncSession]:
     database_url = require_test_database_url(os.environ)
     config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
     config.attributes["database_url"] = database_url
-    command.upgrade(config, "head")
+    await asyncio.to_thread(command.upgrade, config, "head")
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as session:

@@ -29,5 +29,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_users_role_valid", "users", type_="check")
+    op.drop_constraint(op.f("ck_users_role_valid"), "users", type_="check")
     op.drop_column("users", "role")
