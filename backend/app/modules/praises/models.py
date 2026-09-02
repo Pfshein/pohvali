@@ -45,4 +45,7 @@ class Praise(Base):
         onupdate=func.now(),
     )
 
-    __table_args__ = (Index("ix_praises_user_id_local_date", "user_id", "local_date"),)
+    __table_args__ = (
+        Index("ix_praises_user_id_local_date", "user_id", "local_date"),
+        Index("ix_praises_created_at", "created_at"),
+    )

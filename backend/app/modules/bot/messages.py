@@ -44,3 +44,9 @@ ADD_MASCOT_CODE_INVALID = (
 ADD_MASCOT_THRESHOLD_INVALID = "порог должен быть положительным целым числом."
 ADD_MASCOT_NAME_INVALID = "имя должно быть непустым и не длиннее 64 символов."
 ADD_MASCOT_BLURB_INVALID = "описание должно быть непустым и не длиннее 160 символов."
+
+# Aggregated service statistics (PH-802). The same denial is used for unknown
+# accounts and regular users so command handling does not reveal account state.
+STATS_DENIED = "Эта команда доступна только администратору сервиса."
+STATS_USAGE = "Формат: /stats или /stats 30"
+STATS_RETRY = "Не удалось получить статистику. Можно спокойно попробовать ещё раз."

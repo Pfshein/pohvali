@@ -10,6 +10,7 @@ from app.api.dependencies import (
     ReplySenderDependency,
     SettingsDependency,
 )
+from app.modules.admin_stats.service import get_stats_snapshot
 from app.modules.bot.add_mascot import (
     AdminCommandRefused,
     AdminReply,
@@ -20,8 +21,16 @@ from app.modules.bot.messages import (
     ADD_MASCOT_ALREADY_TEXT,
     ADD_MASCOT_CREATED_PREFIX,
     ADD_MASCOT_RETRY_TEXT,
+    STATS_RETRY,
 )
 from app.modules.bot.service import build_start_reply
+from app.modules.bot.stats import (
+    StatsCommand,
+    StatsCommandRefused,
+    extract_stats_actor_id,
+    format_stats,
+    parse_stats_command,
+)
 from app.modules.mascots.png import validate_png
 from app.modules.mascots.service import (
     MascotCodeTaken,
@@ -71,6 +80,7 @@ async def telegram_webhook(
         download_file=download_file,
         send_reply=send_reply,
     )
+    await _handle_stats(update, session=session, send_reply=send_reply)
 
     # Always acknowledge so Telegram does not retry a delivered update.
     return Response(status_code=status.HTTP_200_OK)
@@ -148,3 +158,40 @@ async def _handle_add_mascot(
     else:
         text = ADD_MASCOT_ALREADY_TEXT
     await send_reply(AdminReply(command.chat_id, text, document_file_id=command.file_id))
+
+
+async def _handle_stats(
+    update: dict,
+    *,
+    session: DatabaseSession,
+    send_reply: ReplySenderDependency,
+) -> None:
+    actor_id = extract_stats_actor_id(update)
+    if actor_id is None:
+        return
+
+    authorized = await is_admin_user(session, telegram_id=actor_id)
+    command = parse_stats_command(update, authorized=authorized)
+    if command is None:
+        return
+    if isinstance(command, StatsCommandRefused):
+        logger.info("stats handled", extra={"outcome": "refused"})
+        await send_reply(AdminReply(command.chat_id, command.text))
+        return
+
+    assert isinstance(command, StatsCommand)
+    try:
+        snapshot = await get_stats_snapshot(session)
+        text = format_stats(snapshot, days=command.days)
+    except Exception:
+        logger.warning("stats handled", extra={"outcome": "failed"})
+        await send_reply(
+            AdminReply(
+                command.chat_id,
+                STATS_RETRY,
+            )
+        )
+        return
+
+    logger.info("stats handled", extra={"outcome": "ok"})
+    await send_reply(AdminReply(command.chat_id, text))

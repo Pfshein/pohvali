@@ -1,5 +1,8 @@
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.admin_stats.repository import record_activity_day
 from app.modules.users.models import User, UserRole
 from app.modules.users.repository import (
     delete_user_by_telegram_id,
@@ -18,13 +21,17 @@ async def open_session(
     *,
     telegram_id: int,
     timezone: str,
+    observed_at: datetime | None = None,
 ) -> User:
+    observed_at = observed_at or datetime.now(UTC)
     async with session.begin():
-        return await upsert_user(
+        user = await upsert_user(
             session,
             telegram_id=telegram_id,
             timezone=timezone,
         )
+        await record_activity_day(session, user_id=user.id, observed_at=observed_at)
+        return user
 
 
 async def erase_account(
