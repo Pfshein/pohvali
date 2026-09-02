@@ -237,7 +237,7 @@ production вынесена в PH-707. До её выполнения PH-704 о�
 
 ### PH-801 · P1 · Роли пользователей и admin-авторизация
 
-**Статус:** реализовано, ожидает DB verification. Подробный дизайн:
+**Статус:** выполнено; backend PostgreSQL CI, frontend и quality gates зелёные. Подробный дизайн:
 [`docs/superpowers/specs/2026-09-02-user-roles-admin-authorization-design.md`](superpowers/specs/2026-09-02-user-roles-admin-authorization-design.md),
 пошаговая реализация:
 [`docs/superpowers/plans/2026-09-02-user-roles-admin-authorization.md`](superpowers/plans/2026-09-02-user-roles-admin-authorization.md).
@@ -256,6 +256,25 @@ Telegram подтверждает личность, а полномочия вс
 `/add_mascot` работает только для DB-admin и не скачивает файл для остальных;
 старый список admin IDs удалён из runtime-конфигурации; backend, DB integration и
 frontend quality gates зелёные.
+
+### PH-802 · P1 · Админская статистика `/stats`
+
+**Статус:** утверждено для реализации. Пошаговая спецификация:
+[`docs/superpowers/plans/2026-09-02-admin-stats-command.md`](superpowers/plans/2026-09-02-admin-stats-command.md).
+
+**Цель:** дать DB-администратору агрегированную продуктовую статистику через
+Telegram-команду `/stats`, не раскрывая содержимое похвал и Telegram PII.
+
+**Границы:** дневная активность пользователей, уникальные открытия, авторы и
+количество похвал, конверсия за сегодня/7/30 дней и за всё время. Команда
+доступна только DB-admin в личном чате; web-admin UI и сторонний analytics SDK
+не входят.
+
+**Приёмка:** успешный `/session` атомарно отмечает UTC-день активности;
+повторные и конкурентные открытия не создают дубликатов; удаление аккаунта
+каскадно удаляет активность; `/stats` и `/stats 30` возвращают только агрегаты;
+user/неизвестный получают одинаковый отказ; групповые команды игнорируются;
+PostgreSQL integration и остальные quality gates зелёные.
 
 ## Рекомендуемые релизы
 
