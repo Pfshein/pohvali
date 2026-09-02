@@ -13,6 +13,34 @@ export interface DayEntry {
   unreadable: boolean;
 }
 
+/**
+ * Day entries after a praise was saved. The composer already holds the
+ * plaintext, so a freshly saved praise is folded into the open day straight
+ * away instead of waiting for a reload to fetch and decrypt it again.
+ * Entries stay ordered oldest first, the same order the server returns.
+ */
+export function dayEntriesAfterSave(
+  entries: DayEntry[] | null,
+  selectedDate: string | null,
+  created: PraiseCreated,
+  text: string,
+  createdAt: string = new Date().toISOString(),
+): DayEntry[] | null {
+  if (entries === null) return null;
+  if (selectedDate !== created.local_date) return entries;
+  if (entries.some((entry) => entry.id === created.id)) return entries;
+  return [
+    ...entries,
+    {
+      id: created.id,
+      local_date: created.local_date,
+      created_at: createdAt,
+      text,
+      unreadable: false,
+    },
+  ];
+}
+
 export async function savePraise(
   client: TelegramClient,
   key: CryptoKey,
