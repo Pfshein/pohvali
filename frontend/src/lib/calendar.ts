@@ -30,6 +30,21 @@ export function dateInMonth({ year, month }: MonthRef, day: number): string {
   return `${year}-${pad(month)}-${pad(day)}`;
 }
 
+/** The client's own calendar date as ``YYYY-MM-DD`` (local time, not UTC). */
+export function todayIsoDate(now: Date = new Date()): string {
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * Whether an ``YYYY-MM-DD`` date is still ahead of the client's today. You can
+ * only praise yourself for today or a day that has already happened, so a
+ * future day is never a valid save target. ISO dates sort lexicographically,
+ * so a plain string comparison is a correct date comparison here.
+ */
+export function isFutureIsoDate(isoDate: string, now: Date = new Date()): boolean {
+  return isoDate > todayIsoDate(now);
+}
+
 export function markedDaysForMonth(
   days: readonly CalendarDay[],
   month: MonthRef,
