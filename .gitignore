@@ -2,8 +2,9 @@
 .env.*
 !.env.example
 !frontend/.env.development
-.deploy-previous
 .deploy-current
+.deploy-previous
+.deploy.lock
 .idea/
 .vscode/
 .DS_Store
