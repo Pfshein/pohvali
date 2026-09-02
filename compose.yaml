@@ -37,6 +37,7 @@ services:
       - caddy_config:/config
 
   frontend:
+    image: pohvala-frontend:${POHVALA_IMAGE_TAG:-latest}
     build:
       context: ./frontend
       args:
@@ -45,7 +46,7 @@ services:
     logging: *default-logging
 
   migrate:
-    image: pohvala-backend:latest
+    image: pohvala-backend:${POHVALA_IMAGE_TAG:-latest}
     restart: "no"
     logging: *default-logging
     environment: *backend-env
@@ -55,7 +56,7 @@ services:
         condition: service_healthy
 
   backend:
-    image: pohvala-backend:latest
+    image: pohvala-backend:${POHVALA_IMAGE_TAG:-latest}
     build:
       context: ./backend
     restart: unless-stopped

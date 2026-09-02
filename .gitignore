@@ -3,6 +3,7 @@
 !.env.example
 !frontend/.env.development
 .deploy-previous
+.deploy-current
 .idea/
 .vscode/
 .DS_Store
