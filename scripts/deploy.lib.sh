@@ -69,7 +69,7 @@ current_domain() {
   printf '%s\n' "${APP_DOMAIN%/}"
 }
 
-# Write $content (already fully rendered) to $ENV_FILE atomically at
+# Write $ENV_CONTENT (already fully rendered) to $ENV_FILE atomically at
 # mode 600: temp file in the same directory, then rename. Never overwrites
 # an existing .env — callers must check beforehand.
 write_env_atomic() {
@@ -78,6 +78,31 @@ write_env_atomic() {
   umask 077
   tmp="$(mktemp "${ENV_FILE}.XXXXXX")"
   printf '%s\n' "$content" > "$tmp"
+  chmod 600 "$tmp"
+  mv -f -- "$tmp" "$ENV_FILE"
+}
+
+# Replace the value of one or more KEY=... lines in $ENV_FILE atomically,
+# keeping every other line untouched. Usage: rewrite_env_atomic "KEY=value" ["KEY2=value2" ...]
+rewrite_env_atomic() {
+  [[ -f "$ENV_FILE" ]] || die ".env not found at $ENV_FILE"
+  local -A updates=()
+  local pair key line tmp
+  for pair in "$@"; do
+    key="${pair%%=*}"
+    updates["$key"]="${pair#*=}"
+  done
+
+  umask 077
+  tmp="$(mktemp "${ENV_FILE}.XXXXXX")"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    key="${line%%=*}"
+    if [[ "$line" == *=* && -n "${updates[$key]+set}" ]]; then
+      printf '%s=%s\n' "$key" "${updates[$key]}" >> "$tmp"
+    else
+      printf '%s\n' "$line" >> "$tmp"
+    fi
+  done < "$ENV_FILE"
   chmod 600 "$tmp"
   mv -f -- "$tmp" "$ENV_FILE"
 }
