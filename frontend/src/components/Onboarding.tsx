@@ -27,7 +27,7 @@ export function Onboarding({
         {step === 0 ? (
           <>
             <span className="session-card__star" aria-hidden="true">★</span>
-            <p className="eyebrow">Тихое место</p>
+            <p className="eyebrow">Любовь начинается с себя</p>
             <h1>Раз в день — заметить, за что можно себя похвалить</h1>
             <p>
               Без давления и оценок. Пара секунд для себя, когда захочется. Текст шифруется

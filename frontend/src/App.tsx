@@ -23,6 +23,7 @@ import { russianMonthNameGenitive, russianMonthNamePrepositional } from "./lib/m
 import type { ReminderControls } from "./lib/reminders-api";
 import { dayEntriesAfterSave, type DayEntry } from "./lib/praise-api";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
+import { starsWithCount } from "./lib/plural";
 
 /**
  * Shown instead of saving when the selected day has not arrived yet. A praise
@@ -232,12 +233,12 @@ export function App({
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Тихое место на сегодня</p>
+          <p className="eyebrow">Любовь начинается с себя</p>
           <h1>{firstName ? `${firstName}, привет` : "Похвали себя"}</h1>
         </div>
         <div
           className="star-balance"
-          aria-label={balance === null ? "Баланс загружается" : `${balance} звёзд`}
+          aria-label={balance === null ? "Баланс загружается" : starsWithCount(balance)}
         >
           <span aria-hidden="true">★</span><b>{balance ?? "…"}</b>
         </div>
@@ -249,6 +250,16 @@ export function App({
         daysInMonth={daysInMonth}
         mascot={mascot}
       />
+
+      <section className="gentle-prompt">
+        <div>
+          <p className="eyebrow">Можно даже за мелочь</p>
+          <h2>За что ты хочешь похвалить себя сегодня?</h2>
+        </div>
+        <button className="primary-button" onClick={() => setComposerOpen(true)}>
+          Написать
+        </button>
+      </section>
 
       <MonthCalendar
         year={viewMonth.year}
@@ -286,16 +297,6 @@ export function App({
           )}
         </section>
       )}
-
-      <section className="gentle-prompt">
-        <div>
-          <p className="eyebrow">Можно даже за мелочь</p>
-          <h2>За что ты хочешь похвалить себя сегодня?</h2>
-        </div>
-        <button className="primary-button" onClick={() => setComposerOpen(true)}>
-          Написать
-        </button>
-      </section>
 
       {reminderOffer && <ReminderOffer onAnswer={reminderOffer.onAnswer} />}
 

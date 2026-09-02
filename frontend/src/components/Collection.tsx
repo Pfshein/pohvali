@@ -1,4 +1,5 @@
 import type { MascotItem } from "../lib/mascots-api";
+import { starsWithCount } from "../lib/plural";
 
 interface CollectionProps {
   mascots: readonly MascotItem[];
@@ -29,7 +30,7 @@ export function Collection({
           <p className="eyebrow">Твои спутники</p>
           <h2 id="collection-title">Коллекция</h2>
         </div>
-        <div className="star-balance" aria-label={`${balance} звёзд`}>
+        <div className="star-balance" aria-label={starsWithCount(balance)}>
           <span aria-hidden="true">★</span><b>{balance}</b>
         </div>
       </header>
@@ -81,7 +82,7 @@ export function Collection({
                   className="primary-button mascot-card__action"
                   disabled={busy}
                   onClick={() => onPurchase(mascot.code)}
-                  aria-label={`Открыть ${mascot.name} за ${mascot.price ?? 0} звёзд`}
+                  aria-label={`Открыть ${mascot.name} за ${starsWithCount(mascot.price ?? 0)}`}
                 >
                   {busy ? "Открываем…" : `Открыть за ⭐${mascot.price ?? 0}`}
                 </button>

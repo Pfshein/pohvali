@@ -49,13 +49,13 @@ export function ReminderSettings({ controls, initialSettings }: ReminderSettings
   return (
     <section className="reminder-settings" aria-labelledby="reminder-settings-title">
       <div className="reminder-settings__info">
-        <h2 id="reminder-settings-title">Напоминания</h2>
+        <h2 id="reminder-settings-title">Напоминание</h2>
         <p className="reminder-settings__copy">
-          Одно тихое сообщение около 22:00, если сегодня ещё не было похвалы.
+          Чтобы не забыть уделить себе время, можем напомнить вечером.
         </p>
         {phase === "ready" && settings !== null && !settings.dmAvailable && (
           <p className="reminder-settings__hint">
-            Чтобы напоминания приходили, достаточно один раз открыть чат с ботом.
+            Чтобы напоминание приходило, достаточно один раз открыть чат с ботом.
           </p>
         )}
       </div>
@@ -63,14 +63,14 @@ export function ReminderSettings({ controls, initialSettings }: ReminderSettings
         type="button"
         role="switch"
         aria-checked={settings?.enabled ?? false}
-        aria-label="Напоминания"
+        aria-label="Напоминание"
         className="reminder-switch"
         disabled={phase !== "ready" || isBusy}
         onClick={() => void toggle()}
       >
         <span aria-hidden="true">
           {phase === "ready" && settings !== null
-            ? settings.enabled ? "Включены" : "Выключены"
+            ? settings.enabled ? "Включено" : "Выключено"
             : "…"}
         </span>
       </button>
