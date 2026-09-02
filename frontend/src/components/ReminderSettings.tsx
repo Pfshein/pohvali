@@ -51,7 +51,7 @@ export function ReminderSettings({ controls, initialSettings }: ReminderSettings
       <div className="reminder-settings__info">
         <h2 id="reminder-settings-title">Напоминание</h2>
         <p className="reminder-settings__copy">
-          Чтобы ты не забыл уделить себе время, можем напомнить вечером.
+          Чтобы не забыть уделить себе время, можем напомнить вечером.
         </p>
         {phase === "ready" && settings !== null && !settings.dmAvailable && (
           <p className="reminder-settings__hint">
