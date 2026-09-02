@@ -78,6 +78,31 @@ def test_stats_formatter_has_exact_blocks_zero_conversion_and_rounding() -> None
     assert "Сегодня (UTC)" not in thirty
 
 
+def test_stats_formatter_distinguishes_people_from_entries() -> None:
+    """One person writing four times is not an arithmetic error.
+
+    ``praised_users`` counts people, ``praises`` counts entries. The labels
+    have to say so, or the report reads as if it contradicts itself.
+    """
+    snapshot = StatsSnapshot(
+        today=PeriodStats(3, 1, 4),
+        last_7_days=PeriodStats(3, 1, 4),
+        last_30_days=PeriodStats(3, 1, 4),
+        all_time=PeriodStats(3, 1, 4),
+    )
+
+    rendered = format_stats(snapshot)
+
+    assert "• Из них написали похвалу: 1" in rendered
+    assert "• Всего похвал: 4" in rendered
+    assert "• Из них написали хотя бы одну похвалу: 1" in rendered
+    # The bare wording is what made the count of people read as a count of
+    # praises; it must not come back.
+    assert "• Оставили похвалу:" not in rendered
+    # Conversion divides people by people, never entries by people.
+    assert "• Конверсия: 33,3%" in rendered
+
+
 def test_activity_model_has_only_aggregate_columns_and_required_constraints() -> None:
     table = UserActivityDay.__table__
     assert set(table.columns) == {
