@@ -12,24 +12,12 @@ class PeriodStats:
     praised_users: int
     praises: int
 
-    @property
-    def conversion(self) -> float:
-        return (self.praised_users / self.opened_users * 100) if self.opened_users else 0.0
-
-    @property
-    def conversion_percent(self) -> float:
-        return self.conversion
-
-
-
 @dataclass(frozen=True, slots=True)
 class StatsSnapshot:
     today: PeriodStats
     last_7_days: PeriodStats
     last_30_days: PeriodStats
     all_time: PeriodStats
-
-
 
 def _period(now: datetime, days: int) -> tuple[datetime, datetime, date, date]:
     utc_now = now.astimezone(UTC)

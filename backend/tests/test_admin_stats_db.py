@@ -20,7 +20,7 @@ from app.modules.users.service import erase_account, open_session
 from tests.migration_safety import require_test_database_url
 
 RUN_DATABASE_TESTS = os.getenv("RUN_DATABASE_TESTS") == "1"
-TEST_TELEGRAM_IDS = tuple(9_802_000 + index for index in range(1, 7))
+TEST_TELEGRAM_IDS = tuple(9_802_000 + index for index in range(1, 11))
 FIXED_NOW = datetime(2099, 4, 20, 12, 0, tzinfo=UTC)
 
 
@@ -89,9 +89,10 @@ def test_activity_migration_schema_contract(database_url: str) -> None:
 
 @pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")
 def test_backfill_aggregates_multiple_praises_on_one_utc_day(database_url: str) -> None:
-    async def scenario() -> None:
-        first = datetime(2026, 1, 3, 23, 30, tzinfo=UTC)
-        second = datetime(2026, 1, 3, 23, 45, tzinfo=UTC)
+    async def seed_revision_0011() -> tuple[object, object]:
+        account_opened = datetime(2026, 1, 3, 22, 0, tzinfo=UTC)
+        first_praise = datetime(2026, 1, 3, 23, 30, tzinfo=UTC)
+        second_praise = datetime(2026, 1, 3, 23, 45, tzinfo=UTC)
         engine = create_async_engine(database_url)
         try:
             async with engine.begin() as connection:
@@ -101,10 +102,25 @@ def test_backfill_aggregates_multiple_praises_on_one_utc_day(database_url: str) 
                             "INSERT INTO users (telegram_id, timezone, created_at) "
                             "VALUES (:telegram_id, 'UTC', :created_at) RETURNING id"
                         ),
-                        {"telegram_id": TEST_TELEGRAM_IDS[0], "created_at": first},
+                        {
+                            "telegram_id": TEST_TELEGRAM_IDS[0],
+                            "created_at": account_opened,
+                        },
                     )
                 ).scalar_one()
-                for moment in (first, second):
+                user_without_praise = (
+                    await connection.execute(
+                        text(
+                            "INSERT INTO users (telegram_id, timezone, created_at) "
+                            "VALUES (:telegram_id, 'UTC', :created_at) RETURNING id"
+                        ),
+                        {
+                            "telegram_id": TEST_TELEGRAM_IDS[6],
+                            "created_at": account_opened,
+                        },
+                    )
+                ).scalar_one()
+                for moment in (first_praise, second_praise):
                     await connection.execute(
                         text(
                             "INSERT INTO praises "
@@ -122,6 +138,13 @@ def test_backfill_aggregates_multiple_praises_on_one_utc_day(database_url: str) 
                             "updated_at": moment,
                         },
                     )
+                return user_id, user_without_praise
+        finally:
+            await engine.dispose()
+
+    async def assert_backfill(user_id: object, user_without_praise: object) -> None:
+        engine = create_async_engine(database_url)
+        try:
             async with engine.connect() as connection:
                 rows = (
                     await connection.execute(
@@ -135,14 +158,32 @@ def test_backfill_aggregates_multiple_praises_on_one_utc_day(database_url: str) 
                 assert len(rows) == 1
                 assert rows[0].activity_date == date(2026, 1, 3)
                 assert rows[0].open_count == 1
-                assert rows[0].first_opened_at == first
-                assert rows[0].last_opened_at == second
+                assert rows[0].first_opened_at == datetime(
+                    2026, 1, 3, 22, 0, tzinfo=UTC
+                )
+                assert rows[0].last_opened_at == datetime(
+                    2026, 1, 3, 23, 45, tzinfo=UTC
+                )
+                no_praise_rows = (
+                    await connection.execute(
+                        text(
+                            "SELECT activity_date, open_count FROM user_activity_days "
+                            "WHERE user_id = :user_id"
+                        ),
+                        {"user_id": user_without_praise},
+                    )
+                ).all()
+                assert [(row.activity_date, row.open_count) for row in no_praise_rows] == [
+                    (date(2026, 1, 3), 1)
+                ]
         finally:
             await engine.dispose()
 
     command.downgrade(_config(database_url), "20260902_0011")
     try:
-        asyncio.run(scenario())
+        user_id, user_without_praise = asyncio.run(seed_revision_0011())
+        command.upgrade(_config(database_url), "head")
+        asyncio.run(assert_backfill(user_id, user_without_praise))
     finally:
         command.upgrade(_config(database_url), "head")
 
@@ -213,7 +254,7 @@ def test_activity_upsert_is_utc_dated_monotonic_and_concurrent(database_url: str
 
 
 @pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")
-def test_period_aggregates_use_distinct_authors_and_half_open_boundaries(
+def test_period_aggregates_use_today_7_and_30_day_utc_boundaries(
     database_url: str,
 ) -> None:
     async def scenario() -> None:
@@ -221,7 +262,7 @@ def test_period_aggregates_use_distinct_authors_and_half_open_boundaries(
         try:
             async with engine.begin() as connection:
                 users = []
-                for offset in range(2, 5):
+                for offset in range(2, 6):
                     users.append(
                         (
                             await connection.execute(
@@ -233,17 +274,25 @@ def test_period_aggregates_use_distinct_authors_and_half_open_boundaries(
                             )
                         ).scalar_one()
                     )
-                day = date(2099, 4, 20)
-                for user_id in users:
+                moments = (
+                    FIXED_NOW,
+                    datetime(2099, 4, 14, 0, 0, tzinfo=UTC),
+                    datetime(2099, 3, 22, 0, 0, tzinfo=UTC),
+                    datetime(2099, 3, 21, 23, 59, 59, tzinfo=UTC),
+                )
+                for user_id, moment in zip(users, moments, strict=True):
                     await connection.execute(
                         text(
                             "INSERT INTO user_activity_days "
                             "(user_id, activity_date, first_opened_at, last_opened_at, open_count) "
                             "VALUES (:user_id, :day, :moment, :moment, 1)"
                         ),
-                        {"user_id": user_id, "day": day, "moment": FIXED_NOW},
+                        {
+                            "user_id": user_id,
+                            "day": moment.date(),
+                            "moment": moment,
+                        },
                     )
-                moments = [FIXED_NOW, FIXED_NOW + timedelta(hours=1), FIXED_NOW]
                 for user_id, moment in zip(users, moments, strict=True):
                     await connection.execute(
                         text(
@@ -257,33 +306,43 @@ def test_period_aggregates_use_distinct_authors_and_half_open_boundaries(
                             "user_id": user_id,
                             "body": b"opaque",
                             "iv": bytes(12),
-                            "local_date": day,
+                            "local_date": moment.date(),
                             "created_at": moment,
                             "updated_at": moment,
                         },
                     )
-            from app.modules.admin_stats.repository import get_all_time_stats, get_period_stats
-
-            async with engine.connect() as connection:
-                result = await get_period_stats(
-                    connection,
-                    start_at=FIXED_NOW,
-                    end_at=FIXED_NOW + timedelta(hours=2),
-                    start_date=day,
-                    end_date=day,
+                # Exactly at the exclusive upper boundary: never counted in
+                # today/7/30 despite belonging to a known user.
+                next_day = datetime(2099, 4, 21, 0, 0, tzinfo=UTC)
+                await connection.execute(
+                    text(
+                        "INSERT INTO praises "
+                        "(id, user_id, body_ciphertext, iv, local_date, created_at, "
+                        "updated_at) VALUES (:id, :user_id, :body, :iv, :local_date, "
+                        ":created_at, :updated_at)"
+                    ),
+                    {
+                        "id": uuid4(),
+                        "user_id": users[0],
+                        "body": b"opaque",
+                        "iv": bytes(12),
+                        "local_date": next_day.date(),
+                        "created_at": next_day,
+                        "updated_at": next_day,
+                    },
                 )
-                assert result == (3, 3, 3)
-                all_time = await get_all_time_stats(connection)
-                assert all_time[0] >= 3
-                assert all_time[1] >= 3
-                assert all_time[2] >= 3
-                assert await get_period_stats(
-                    connection,
-                    start_at=FIXED_NOW + timedelta(days=1),
-                    end_at=FIXED_NOW + timedelta(days=2),
-                    start_date=day + timedelta(days=1),
-                    end_date=day + timedelta(days=1),
-                ) == (0, 0, 0)
+
+            from app.modules.admin_stats.service import PeriodStats, get_stats_snapshot
+
+            factory = async_sessionmaker(engine, expire_on_commit=False)
+            async with factory() as session:
+                snapshot = await get_stats_snapshot(session, now=FIXED_NOW)
+            assert snapshot.today == PeriodStats(1, 1, 1)
+            assert snapshot.last_7_days == PeriodStats(2, 2, 2)
+            assert snapshot.last_30_days == PeriodStats(3, 3, 3)
+            assert snapshot.all_time.opened_users >= 4
+            assert snapshot.all_time.praised_users >= 4
+            assert snapshot.all_time.praises >= 5
         finally:
             await engine.dispose()
 

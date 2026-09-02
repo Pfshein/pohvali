@@ -107,7 +107,9 @@ def test_activity_model_has_only_aggregate_columns_and_required_constraints() ->
     assert {tuple(column.name for column in index.columns) for index in table.indexes} == {
         ("activity_date",)
     }
-    assert set(table.columns).isdisjoint({"telegram_id", "body", "payload", "event_data"})
+    assert set(table.columns.keys()).isdisjoint(
+        {"telegram_id", "body", "payload", "event_data"}
+    )
 
 
 class _Sender:
