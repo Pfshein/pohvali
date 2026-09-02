@@ -21,6 +21,10 @@ Telegram Mini App, где человек за 15–20 секунд замеча�
 3. Откройте `http://localhost`.
 4. Backend healthcheck доступен по `http://localhost/api/v1/health`.
 
+Это локальная разработка. Канонический способ развернуть production —
+`sudo ./scripts/deploy.sh` (bootstrap при первом запуске, релиз новой версии из
+`main` при повторном); см. [Production deploy runbook](docs/deploy.md).
+
 Для быстрой разработки интерфейса без Telegram:
 
 ```powershell
@@ -300,16 +304,20 @@ Mini App (`web_app` на `APP_DOMAIN`). Другие сообщения и не-
 неверный/отсутствующий secret — `403`. Тело update никогда не пишется в лог (в логе только
 числовой `update_id`).
 
-Зарегистрируйте webhook один раз для окружения после того, как backend доступен по HTTPS:
+На production вебхук настраивает `scripts/deploy.sh` автоматически (см.
+[Production deploy runbook](docs/deploy.md)). Зарегистрировать или обновить его вручную
+можно пакетной командой backend:
 
 ```bash
-docker compose run --rm \
-  -v "$PWD/scripts:/srv/scripts:ro" \
-  backend python /srv/scripts/set_telegram_webhook.py
+docker compose run --rm backend python -m app.modules.telegram.setup set-webhook
 ```
 
-Скрипт берёт `BOT_TOKEN`, `APP_DOMAIN`, `TELEGRAM_WEBHOOK_PATH` и `TELEGRAM_WEBHOOK_SECRET`
-из окружения приложения и запрашивает у Telegram только `message`-обновления.
+Команда берёт `BOT_TOKEN`, `APP_DOMAIN`, `TELEGRAM_WEBHOOK_PATH` и `TELEGRAM_WEBHOOK_SECRET`
+из окружения приложения и запрашивает у Telegram только `message`-обновления. По умолчанию
+она сохраняет уже ожидающие updates (`--keep-pending`); сбросить их можно только явным
+`--drop-pending`, что имеет смысл лишь при первом запуске нового бота. Другие команды того
+же модуля — `get-me`, `set-menu-button`, `get-webhook-info` — не печатают токен, secret или
+путь webhook.
 
 Роль первого администратора назначается после открытия пользователем бота или Mini App:
 
