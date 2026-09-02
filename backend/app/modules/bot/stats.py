@@ -72,11 +72,19 @@ def _percent(numerator: int, denominator: int) -> str:
 
 
 def _period_text(label: str, stats: PeriodStats) -> str:
+    """One period block.
+
+    ``praised_users`` counts people and ``praises`` counts entries, so the two
+    differ whenever anyone writes more than once in the period. "Из них" says
+    that the first is a subset of the openers rather than a count of praises —
+    without it "Оставили похвалу: 1" beside "Всего похвал: 4" reads as an
+    arithmetic error.
+    """
     return "\n".join(
         (
             label,
             f"• Открыли приложение: {stats.opened_users}",
-            f"• Оставили похвалу: {stats.praised_users}",
+            f"• Из них написали похвалу: {stats.praised_users}",
             f"• Всего похвал: {stats.praises}",
             f"• Конверсия: {_percent(stats.praised_users, stats.opened_users)}",
         )
@@ -105,7 +113,7 @@ def format_stats(
             (
                 "За всё время",
                 f"• Пользователей: {all_time.opened_users}",
-                f"• Оставили хотя бы одну похвалу: {all_time.praised_users}",
+                f"• Из них написали хотя бы одну похвалу: {all_time.praised_users}",
                 f"• Всего похвал: {all_time.praises}",
                 f"• Конверсия: {_percent(all_time.praised_users, all_time.opened_users)}",
             )
