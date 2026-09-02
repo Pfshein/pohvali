@@ -29,7 +29,10 @@ async def upsert_user(
         )
         .returning(User)
     )
-    result = await session.execute(statement)
+    result = await session.execute(
+        statement,
+        execution_options={"populate_existing": True},
+    )
     return result.scalar_one()
 
 
