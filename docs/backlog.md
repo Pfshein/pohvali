@@ -259,8 +259,8 @@ frontend quality gates зелёные.
 
 ### PH-802 · P1 · Админская статистика `/stats`
 
-**Статус:** выполнено; backend quality gates зелёные, PostgreSQL integration ожидает
-изолированную БД CI. Пошаговая спецификация:
+**Статус:** выполнено; backend PostgreSQL CI, frontend и quality gates зелёные.
+Пошаговая спецификация:
 [`docs/superpowers/plans/2026-09-02-admin-stats-command.md`](superpowers/plans/2026-09-02-admin-stats-command.md).
 
 **Цель:** дать DB-администратору агрегированную продуктовую статистику через
