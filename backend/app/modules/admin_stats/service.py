@@ -20,17 +20,6 @@ class PeriodStats:
     def conversion_percent(self) -> float:
         return self.conversion
 
-    @property
-    def users(self) -> int:
-        return self.opened_users
-
-    @property
-    def users_with_praise(self) -> int:
-        return self.praised_users
-
-    @property
-    def total_praises(self) -> int:
-        return self.praises
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,25 +29,6 @@ class StatsSnapshot:
     last_30_days: PeriodStats
     all_time: PeriodStats
 
-    @property
-    def all_time_stats(self) -> PeriodStats:
-        return self.all_time
-
-    @property
-    def period_7_days(self) -> PeriodStats:
-        return self.last_7_days
-
-    @property
-    def period_30_days(self) -> PeriodStats:
-        return self.last_30_days
-
-    @property
-    def seven_days(self) -> PeriodStats:
-        return self.last_7_days
-
-    @property
-    def thirty_days(self) -> PeriodStats:
-        return self.last_30_days
 
 
 def _period(now: datetime, days: int) -> tuple[datetime, datetime, date, date]:
@@ -111,9 +81,3 @@ async def get_stats_snapshot(
         last_30_days=month,
         all_time=PeriodStats(users, praised_users, praises),
     )
-
-
-# Descriptive aliases keep the service convenient for callers and tests.
-get_stats = get_stats_snapshot
-build_stats_snapshot = get_stats_snapshot
-get_snapshot = get_stats_snapshot

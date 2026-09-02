@@ -37,14 +37,11 @@ async def record_activity_day(
             index_elements=[UserActivityDay.user_id, UserActivityDay.activity_date],
             set_={
                 "open_count": UserActivityDay.open_count + 1,
-                "last_opened_at": observed_at,
+                "last_opened_at": func.greatest(UserActivityDay.last_opened_at, observed_at),
             },
         )
     )
     await session.execute(statement)
-
-
-upsert_activity_day = record_activity_day
 
 
 async def get_period_stats(

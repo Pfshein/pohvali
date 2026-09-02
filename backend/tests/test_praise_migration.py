@@ -35,6 +35,7 @@ async def assert_praises_schema_contract(database_url: str) -> None:
 
             indexes = await connection.run_sync(lambda sync: inspect(sync).get_indexes("praises"))
             assert any(index["column_names"] == ["user_id", "local_date"] for index in indexes)
+            assert any(index["column_names"] == ["created_at"] for index in indexes)
 
             foreign_keys = await connection.run_sync(
                 lambda sync: inspect(sync).get_foreign_keys("praises")

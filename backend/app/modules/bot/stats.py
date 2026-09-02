@@ -14,10 +14,6 @@ class StatsCommand:
     chat_id: int
     days: int | None = None
 
-    @property
-    def period_days(self) -> int | None:
-        return self.days
-
 
 @dataclass(frozen=True, slots=True)
 class StatsCommandRefused:
@@ -91,10 +87,7 @@ def format_stats(
     snapshot: StatsSnapshot,
     *,
     days: int | None = None,
-    period_days: int | None = None,
 ) -> str:
-    if period_days is not None:
-        days = period_days
     period = snapshot.last_30_days if days == 30 else snapshot.last_7_days
     blocks = []
     if days == 30:
@@ -119,6 +112,3 @@ def format_stats(
         )
     )
     return "\n\n".join(blocks)
-
-
-format_stats_reply = format_stats

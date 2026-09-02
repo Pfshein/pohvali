@@ -64,3 +64,10 @@ def test_calendar_index_covers_user_and_local_date() -> None:
     }
 
     assert ("user_id", "local_date") in index_columns
+
+
+def test_stats_index_covers_praise_creation_time() -> None:
+    index_columns = {
+        tuple(column.name for column in index.columns) for index in Praise.__table__.indexes
+    }
+    assert ("created_at",) in index_columns

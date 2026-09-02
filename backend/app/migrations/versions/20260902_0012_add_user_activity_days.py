@@ -74,8 +74,16 @@ def upgrade() -> None:
             """
             INSERT INTO user_activity_days
                 (user_id, activity_date, first_opened_at, last_opened_at, open_count)
-            SELECT user_id, (created_at AT TIME ZONE 'UTC')::date, created_at, created_at, 1
-            FROM praises
+            SELECT user_id, activity_date, first_opened_at, last_opened_at, 1
+            FROM (
+                SELECT
+                    user_id,
+                    (created_at AT TIME ZONE 'UTC')::date AS activity_date,
+                    MIN(created_at) AS first_opened_at,
+                    MAX(created_at) AS last_opened_at
+                FROM praises
+                GROUP BY user_id, (created_at AT TIME ZONE 'UTC')::date
+            ) AS praise_days
             ON CONFLICT (user_id, activity_date) DO UPDATE
             SET first_opened_at = LEAST(
                     user_activity_days.first_opened_at, EXCLUDED.first_opened_at

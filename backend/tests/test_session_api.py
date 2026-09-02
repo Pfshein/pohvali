@@ -33,6 +33,7 @@ USER_DATA_TABLES = (
     "reminder_states",
     "mascot_unlocks",
     "mascot_ownership",
+    "user_activity_days",
 )
 
 
@@ -334,6 +335,7 @@ def test_delete_session_erases_user_and_all_related_data(
     assert before["star_balances"] == 1
     assert before["reminder_states"] == 1
     assert before["mascot_ownership"] == 1
+    assert before["user_activity_days"] == 1
 
     response = client.delete("/api/v1/session", headers=headers)
 
