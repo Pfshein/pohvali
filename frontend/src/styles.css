@@ -235,22 +235,26 @@ h2 { font-size: 1.2rem; line-height: 1.25; color: var(--ink); }
   z-index: 4;
   left: 50%;
   bottom: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
   width: max-content;
   max-width: 92%;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border: 1px solid rgba(94, 90, 87, 0.05);
-  border-radius: 999px;
+  border-radius: 22px;
   background: rgba(255, 253, 248, 0.9);
   box-shadow: 0 8px 24px rgba(94, 90, 87, 0.08);
+  text-align: center;
   transform: translateX(-50%);
   backdrop-filter: blur(8px);
 }
 
-.mascot-hero__caption strong { color: #47715a; }
-.mascot-hero__caption span { color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+/* One sentence now, so it may wrap to two lines — 700 across a full sentence
+   reads heavy, and the pill is no longer a single-line badge. */
+.mascot-hero__caption span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
 
 .calendar {
   padding: 20px 16px 16px;

@@ -23,6 +23,7 @@ import { russianMonthNameGenitive, russianMonthNamePrepositional } from "./lib/m
 import type { ReminderControls } from "./lib/reminders-api";
 import { dayEntriesAfterSave, type DayEntry } from "./lib/praise-api";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
+import { starsWithCount } from "./lib/plural";
 
 /**
  * Shown instead of saving when the selected day has not arrived yet. A praise
@@ -237,7 +238,7 @@ export function App({
         </div>
         <div
           className="star-balance"
-          aria-label={balance === null ? "Баланс загружается" : `${balance} звёзд`}
+          aria-label={balance === null ? "Баланс загружается" : starsWithCount(balance)}
         >
           <span aria-hidden="true">★</span><b>{balance ?? "…"}</b>
         </div>

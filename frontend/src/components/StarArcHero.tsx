@@ -1,5 +1,6 @@
 import type { Mascot } from "../lib/mascots";
 import { buildMonthStarArc } from "../lib/month-progress";
+import { monthStarsCaption } from "../lib/plural";
 
 interface StarArcHeroProps {
   praisedDays: ReadonlySet<number>;
@@ -11,9 +12,10 @@ interface StarArcHeroProps {
 export function StarArcHero({ praisedDays, monthName, daysInMonth, mascot }: StarArcHeroProps) {
   const stars = buildMonthStarArc(praisedDays, daysInMonth);
   const filledStars = stars.filter((star) => star.filled).length;
+  const caption = monthStarsCaption(filledStars, monthName);
 
   return (
-    <section className="mascot-hero" aria-label={`${filledStars} звёзд в ${monthName}`}>
+    <section className="mascot-hero" aria-label={caption}>
       <div className="star-arc" aria-hidden="true">
         <div className="rainbow-band rainbow-band--lavender" />
         <div className="rainbow-band rainbow-band--peach" />
@@ -41,8 +43,7 @@ export function StarArcHero({ praisedDays, monthName, daysInMonth, mascot }: Sta
       />
 
       <div className="mascot-hero__caption">
-        <strong>{mascot.name}</strong>
-        <span>Уже {filledStars} звёзд в {monthName}</span>
+        <span>{caption}</span>
       </div>
     </section>
   );
