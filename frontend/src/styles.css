@@ -310,7 +310,7 @@ h2 { font-size: 1.2rem; line-height: 1.25; color: var(--ink); }
 .mascot-option:focus-visible { outline: 3px solid var(--lavender); outline-offset: 2px; }
 
 .gentle-prompt {
-  margin-top: 18px;
+  margin: 18px 0 var(--space-3);
   padding: 20px;
   border-radius: 26px;
   background: linear-gradient(135deg, var(--peach), #f9e2d4);
