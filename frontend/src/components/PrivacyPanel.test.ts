@@ -17,7 +17,7 @@ describe("privacy panel", () => {
     expect(deleteAccount).not.toHaveBeenCalled();
   });
 
-  it("explains what is stored and links the full policy once opened", () => {
+  it("explains what is stored and offers the full policy once opened", () => {
     const markup = renderToStaticMarkup(
       createElement(PrivacyPanel, {
         onDeleteAccount: vi.fn(async () => {}),
@@ -26,10 +26,30 @@ describe("privacy panel", () => {
     );
 
     expect(markup).toContain("шифруются на устройстве");
-    expect(markup).toContain('href="/privacy.html"');
+    expect(markup).toContain("Политика конфиденциальности");
     expect(markup).toContain("Удалить мои данные");
     expect(markup).toContain("нельзя отменить");
     expect(markup).toContain("Оставить");
+  });
+
+  it("keeps the reader in the app: the policy opens inline, not as a link out", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PrivacyPanel, {
+        onDeleteAccount: vi.fn(async () => {}),
+        initialView: "policy",
+      }),
+    );
+
+    // The whole policy is present in the dialog itself.
+    expect(markup).toContain("Как работает шифрование");
+    expect(markup).toContain("Что мы не храним");
+    expect(markup).toContain("Резервные копии");
+    expect(markup).toContain("Назад");
+
+    // Nothing sends the user to an external page or a new browser tab.
+    expect(markup).not.toContain("privacy.html");
+    expect(markup).not.toContain("target=\"_blank\"");
+    expect(markup).not.toContain("<a ");
   });
 
   it("shows a calm completion state without pressure wording", () => {

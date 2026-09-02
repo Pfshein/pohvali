@@ -216,8 +216,10 @@ production вынесена в PH-707. До её выполнения PH-704 о�
 ### PH-706 · P0 · Privacy/legal launch gate
 
 **Статус:** выполнено — privacy policy публикуется по `/privacy.html`
-(`frontend/public/privacy.html`), удаление данных реализовано эндпоинтом
-`DELETE /api/v1/session` и панелью «Приватность и данные» в приложении,
+(генерируется из `frontend/src/lib/privacy-policy.ts`; тот же текст читается
+внутри приложения, без перехода на внешнюю страницу), удаление данных
+реализовано эндпоинтом `DELETE /api/v1/session` и панелью
+«Приватность и данные» в приложении,
 юрисдикция и data residency зафиксированы в [`docs/deploy.md`](deploy.md),
 раздел 12 (VPS и bucket в ЕС).
 
