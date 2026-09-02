@@ -233,9 +233,34 @@ production вынесена в PH-707. До её выполнения PH-704 о�
 
 **Приёмка:** ручной запуск unit'а завершается строками `backup complete` и `offsite upload complete`; в bucket появляются объекты `pohvala-postgres-*.dump.age`, удалённый retention держит заданное число архивов; выполнен первый реальный off-host restore drill из внешнего хранилища при недоступном VPS и записан в протокол [`docs/backup.md`](backup.md); после этого PH-704 закрывается целиком.
 
+## M8 — фундамент админ-панели
+
+### PH-801 · P1 · Роли пользователей и admin-авторизация
+
+**Статус:** запланировано. Подробный дизайн:
+[`docs/superpowers/specs/2026-09-02-user-roles-admin-authorization-design.md`](superpowers/specs/2026-09-02-user-roles-admin-authorization-design.md),
+пошаговая реализация:
+[`docs/superpowers/plans/2026-09-02-user-roles-admin-authorization.md`](superpowers/plans/2026-09-02-user-roles-admin-authorization.md).
+
+**Цель:** заменить feature-specific список `TELEGRAM_ADMIN_IDS` одной серверной
+моделью ролей. Каждый аккаунт имеет роль `user` или `admin` в PostgreSQL;
+Telegram подтверждает личность, а полномочия всегда проверяет backend по БД.
+
+**Границы:** миграция роли, CLI назначения/снятия admin, общий FastAPI guard,
+поле role в session contract и перевод `/add_mascot` на DB-role. Визуальная
+админ-панель, список пользователей и HTTP-управление ролями не входят.
+
+**Приёмка:** существующие и новые аккаунты безопасно получают `user`; обычная
+сессия не может изменить роль; CLI идемпотентно меняет роль только существующей
+строке; user/неизвестный получают одинаковый `403` от admin guard;
+`/add_mascot` работает только для DB-admin и не скачивает файл для остальных;
+`TELEGRAM_ADMIN_IDS` удалён из runtime-конфигурации; backend, DB integration и
+frontend quality gates зелёные.
+
 ## Рекомендуемые релизы
 
 - **R0 / Foundation:** PH-001…105.
 - **R1 / Closed alpha:** PH-201, 203…206, 301…305, 601, 602, 604, 701–703.
 - **R2 / MVP:** PH-202, 401–403, 501–503, 704–707.
 - **R2.1:** задачи P1 после обратной связи закрытой группы.
+- **R3 / Admin foundation:** PH-801 и последующие задачи admin UI.
