@@ -233,7 +233,7 @@ export function App({
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Тихое место на сегодня</p>
+          <p className="eyebrow">Любовь начинается с себя</p>
           <h1>{firstName ? `${firstName}, привет` : "Похвали себя"}</h1>
         </div>
         <div
