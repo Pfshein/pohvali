@@ -146,7 +146,6 @@ CORS_ORIGINS=${domain}"
 
   printf '%s\n' "$sha" > "$CURRENT_FILE"
   log "Bootstrap complete. Domain: $domain"
-  cmd_status
 }
 
 # Loop until the admin's account exists (they must open the bot/Mini App
@@ -165,13 +164,103 @@ assign_first_admin() {
 }
 
 # ---------------------------------------------------------------------------
-# Subcommands (release/status/logs/rollback/rotate-secrets filled in by
-# later PH-803 checkpoints)
+# Release (Task 5)
+# ---------------------------------------------------------------------------
+
+backup_before_migrate() {
+  local backup_script="$PROJECT_DIR/ops/backup/backup.sh"
+  local recipient_file="${POHVALA_AGE_RECIPIENT_FILE:-/etc/pohvali-backup/recipients.txt}"
+
+  if [[ -x "$backup_script" && -r "$recipient_file" ]]; then
+    log "Running the configured encrypted backup before migrating..."
+    "$backup_script"
+    return 0
+  fi
+
+  log "No configured encrypted backup found — falling back to a local pg_dump."
+  local backup_dir="$PROJECT_DIR/.deploy-backups" ts dump_path
+  install -d -m 0700 "$backup_dir"
+  ts="$(date -u +%Y%m%dT%H%M%SZ)"
+  dump_path="$backup_dir/pre-migrate-${ts}.dump"
+  if ! docker compose exec -T postgres sh -eu -c \
+      'exec pg_dump --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --format=custom --no-owner --no-privileges' \
+      > "$dump_path"; then
+    rm -f -- "$dump_path"
+    die "pre-migration backup failed"
+  fi
+  if [[ ! -s "$dump_path" ]]; then
+    rm -f -- "$dump_path"
+    die "pre-migration backup is empty"
+  fi
+  chmod 0600 "$dump_path"
+  log "Pre-migration backup saved: $(basename -- "$dump_path")"
+}
+
+release() {
+  log "Existing .env found — checking for a release."
+  load_env
+
+  git -C "$PROJECT_DIR" fetch --quiet origin main
+
+  if [[ -n "$(git -C "$PROJECT_DIR" status --porcelain)" ]]; then
+    die "worktree is dirty — commit or stash local changes before deploying"
+  fi
+
+  local head_sha origin_sha
+  head_sha="$(git -C "$PROJECT_DIR" rev-parse HEAD)"
+  origin_sha="$(git -C "$PROJECT_DIR" rev-parse origin/main)"
+
+  if [[ "$head_sha" == "$origin_sha" ]]; then
+    log "origin/main has no new commits — nothing to deploy."
+    log "Current release: ${head_sha:0:12}"
+    return 0
+  fi
+
+  if ! check_ci_status "$origin_sha"; then
+    die "CI is not green for ${origin_sha:0:12}. Re-run with --allow-red or DEPLOY_ALLOW_RED=1 to override."
+  fi
+
+  printf '%s\n' "$head_sha" > "$PREVIOUS_FILE"
+
+  backup_before_migrate
+
+  git -C "$PROJECT_DIR" merge --ff-only origin/main \
+    || die "fast-forward merge failed — local main has diverged from origin/main"
+
+  compose_config_check
+  deploy_up "$origin_sha" --build
+
+  wait_for_health
+  wait_for_https "$(current_domain)"
+
+  log "Refreshing the webhook (keeping pending updates)..."
+  telegram_cmd set-webhook --keep-pending
+  telegram_cmd get-webhook-info
+
+  printf '%s\n' "$origin_sha" > "$CURRENT_FILE"
+  prune_old_images "$head_sha" "$origin_sha"
+
+  log "Release complete: ${head_sha:0:12} -> ${origin_sha:0:12}"
+}
+
+# ---------------------------------------------------------------------------
+# Subcommands (status/logs/rollback/rotate-secrets filled in by the next
+# PH-803 checkpoint)
 # ---------------------------------------------------------------------------
 
 cmd_deploy() {
+  ALLOW_RED=0
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --allow-red) ALLOW_RED=1 ;;
+      *) die "unknown deploy option: $arg" ;;
+    esac
+  done
+  [[ "${DEPLOY_ALLOW_RED:-0}" == "1" ]] && ALLOW_RED=1
+
   if [[ -f "$ENV_FILE" ]]; then
-    die "release flow not implemented yet"
+    release
   else
     bootstrap
   fi
