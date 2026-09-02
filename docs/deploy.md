@@ -174,7 +174,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 Этот блок выполняется один раз.
 
-## 5. Код и production `.env`
+## 5. Код и первый запуск: `sudo ./scripts/deploy.sh`
 
 ```bash
 sudo install -d -o deploy -g deploy /opt/pohvali
@@ -184,135 +184,73 @@ git switch main
 git status --short --branch
 ```
 
-Сгенерируйте три независимых значения и сохраните их временно в менеджере
-паролей:
-
-```bash
-openssl rand -hex 32
-openssl rand -hex 32
-openssl rand -hex 24
-```
-
-Это соответственно пароль PostgreSQL, secret webhook и случайная часть пути
-webhook. Затем создайте файл:
-
-```bash
-umask 077
-nano .env
-```
-
-Шаблон (замените все значения в угловых скобках):
-
-```dotenv
-APP_ENV=production
-APP_DOMAIN=https://app.example.com
-VITE_TELEGRAM_MODE=telegram
-
-BOT_TOKEN=<token-from-BotFather>
-TELEGRAM_WEBHOOK_SECRET=<second-openssl-value>
-TELEGRAM_WEBHOOK_PATH=<third-openssl-value>
-
-POSTGRES_DB=pohvala
-POSTGRES_USER=pohvala
-POSTGRES_PASSWORD=<first-openssl-value>
-DATABASE_URL=postgresql+asyncpg://pohvala:<first-openssl-value>@postgres:5432/pohvala
-
-CORS_ORIGINS=https://app.example.com
-```
-
-В `POSTGRES_PASSWORD` и `DATABASE_URL` должно стоять одно и то же первое hex-
-значение. Hex выбран специально: его не нужно URL-кодировать. Домен в
-`APP_DOMAIN` и `CORS_ORIGINS` должен совпадать, без завершающего `/`.
-
-Проверьте права и итоговую Compose-конфигурацию. Вторая команда не печатает
-секреты:
-
-```bash
-chmod 600 .env
-sudo docker compose config --quiet
-```
-
-Не публикуйте вывод `docker compose config`: он содержит раскрытые секреты.
-
-## 6. Первый запуск
-
-Одна команда собирает образы, поднимает PostgreSQL, применяет миграции и сид
-маскотов (сервис `migrate`) и только затем стартует backend, frontend и Caddy:
+Первый запуск — одна команда:
 
 ```bash
 cd /opt/pohvali
-sudo docker compose up -d --build
-sudo docker compose ps -a
-sudo docker compose logs --tail=100 caddy backend migrate
+sudo ./scripts/deploy.sh
 ```
 
-Сервис `migrate` — одноразовый: он завершается с кодом 0 после `alembic upgrade
-head` и идемпотентного сида каталога маскотов, и `backend` стартует только после
-его успешного завершения. В `docker compose ps -a` он отображается как `exited (0)`
-— это нормально.
+Скрипт видит, что `.env` ещё нет, и проводит интерактивный bootstrap:
 
-После первой выкладки назначьте первого администратора для уже открывшего бота
-или Mini App аккаунта:
+1. Спрашивает только то, что нельзя сгенерировать: production-домен (без
+   `https://` можно — скрипт сам приведёт к `https://<domain>`, без завершающего
+   `/`), токен бота от [@BotFather](https://t.me/BotFather) (ввод скрыт, как
+   пароль), и опционально Telegram ID первого администратора (пусто — пропустить,
+   роль можно назначить позже).
+2. Генерирует `POSTGRES_PASSWORD`, `TELEGRAM_WEBHOOK_SECRET` и
+   `TELEGRAM_WEBHOOK_PATH` через `openssl rand -hex`, добавляет производные
+   значения (`APP_ENV=production`, `CORS_ORIGINS=<домен>`, `DATABASE_URL` и т.д.)
+   и атомарно пишет `.env` с правами `600`. Существующий `.env` скрипт никогда не
+   трогает — при повторном запуске он переходит к обновлению (раздел 8).
+3. Проверяет конфигурацию (`docker compose config --quiet`), собирает образы,
+   тегированные текущим git SHA, и поднимает стек (`docker compose up -d
+   --build`); `migrate` применяет миграции и сид маскотов до старта backend.
+4. Дожидается healthcheck backend и рабочего `https://<домен>/api/v1/health`.
+5. Настраивает Telegram: `getMe` (проверяет токен), `setWebhook` — **только на
+   этом первом запуске** со сбросом ожидающих updates (боту терять нечего),
+   `setChatMenuButton` и `getWebhookInfo` для проверки.
+6. Если был указан ID администратора — ждёт, пока владелец откроет бота или Mini
+   App (жмите Enter для повтора, Ctrl-C — чтобы назначить роль позже вручную).
 
-```bash
-sudo docker compose exec -T backend \
-  python -m app.modules.users.set_role 123456789 admin
-```
+Ничего из выведенного в терминал не содержит токен, пароль БД или webhook
+secret/path — только домен, статус контейнеров и подтверждения. Не используйте
+`docker compose up --scale backend`: внутри backend работает APScheduler
+напоминаний, второй экземпляр продублирует фоновые задания. Caddy автоматически
+запросит TLS-сертификат; DNS и открытые порты 80/443 должны уже указывать на этот
+VPS.
 
-Замените `123456789` на Telegram ID владельца (его можно узнать через
-`@userinfobot`). Для снятия роли выполните ту же команду с `user`. После проверки
-назначения удалите старую переменную admin ID из production `.env`, если она там
-осталась.
+## 6. Проверка HTTPS и webhook
 
-Не используйте `--scale backend`. Caddy автоматически запросит TLS-сертификат;
-DNS и открытые порты 80/443 должны уже указывать на этот VPS.
-
-## 7. Проверка HTTPS и регистрация webhook
-
-С VPS:
-
-```bash
-curl -fsS https://app.example.com/api/v1/health
-curl -I https://app.example.com/
-```
-
-Health должен вернуть:
-
-```json
-{"status":"ok"}
-```
-
-Если сертификат не выпустился:
-
-```bash
-sudo docker compose logs --tail=200 caddy
-```
-
-Проверьте DNS, часы сервера (`timedatectl`), порт 80 и лимиты Let's Encrypt.
-
-После рабочего HTTPS зарегистрируйте Telegram webhook из backend-контейнера:
+`sudo ./scripts/deploy.sh status` в любой момент печатает состояние контейнеров,
+текущий/предыдущий SHA, результат HTTPS healthcheck и `getWebhookInfo` — без
+секретов:
 
 ```bash
 cd /opt/pohvali
-sudo docker compose run --rm \
-  -v "$PWD/scripts:/srv/scripts:ro" \
-  backend python /srv/scripts/set_telegram_webhook.py
+sudo ./scripts/deploy.sh status
 ```
 
-Команда должна вывести только подтверждение домена. Она передаёт Telegram тот же
-secret, который backend проверяет в заголовке webhook, и удаляет старые ожидающие
-updates.
-
-Откройте бота в Telegram, отправьте `/start` и нажмите inline-кнопку. Отдельная
-настройка Menu Button в BotFather необязательна; при желании задайте ей тот же
-HTTPS URL.
-
-## 8. Smoke test перед пользователями
+Если нужно вручную перерегистрировать webhook (например, домен поменяли не через
+bootstrap), используйте пакетную Telegram-команду напрямую — она не требует
+монтирования `scripts/` внутрь контейнера:
 
 ```bash
 cd /opt/pohvali
-sudo docker compose ps -a
-curl -fsS https://app.example.com/api/v1/health
+sudo docker compose run --rm backend \
+  python -m app.modules.telegram.setup set-webhook
+```
+
+По умолчанию (без флага) она **сохраняет** ожидающие updates
+(`--keep-pending`); сбросить их можно только явным `--drop-pending`, и это
+осмысленно исключительно при первом запуске нового бота. Откройте бота в
+Telegram, отправьте `/start` и нажмите inline-кнопку.
+
+## 7. Smoke test перед пользователями
+
+```bash
+cd /opt/pohvali
+sudo ./scripts/deploy.sh status
 sudo docker compose logs --since=10m backend caddy
 df -h
 free -h
@@ -336,57 +274,80 @@ sudo reboot
 
 ```bash
 cd /opt/pohvali
-sudo docker compose ps -a
-curl -fsS https://app.example.com/api/v1/health
+sudo ./scripts/deploy.sh status
 ```
 
-## 9. Обновление production
+## 8. Обновление production
 
-Каждый деплой сохраняет SHA предыдущей версии, делает только fast-forward и одной
-командой пересобирает образы, применяет миграции и сид (сервис `migrate`) и лишь
-затем заменяет работающие контейнеры:
+Та же команда, что и для первого запуска, — `sudo ./scripts/deploy.sh` — при уже
+существующем `.env` идёт по пути релиза, а не bootstrap:
 
 ```bash
 cd /opt/pohvali
-git switch main
-git fetch origin main
-git rev-parse HEAD > .deploy-previous
-git merge --ff-only origin/main
-sudo docker compose config --quiet
-sudo docker compose up -d --build --remove-orphans
-sudo docker compose ps -a
-curl -fsS https://app.example.com/api/v1/health
+sudo ./scripts/deploy.sh
 ```
 
-Если `.env`, домен или webhook-путь менялись, после успешного healthcheck снова
-запустите скрипт регистрации webhook из раздела 7.
+Один прогон делает всё по порядку: `git fetch origin main`; отказ, если рабочее
+дерево грязное; безопасный no-op (выход `0`, без изменений), если новых коммитов
+в `origin/main` нет; проверка CI-статуса целевого коммита через GitHub API
+(красный статус останавливает деплой — обойти можно `--allow-red` или
+`DEPLOY_ALLOW_RED=1`; недоступность API — только предупреждение); резервная копия
+БД перед миграцией (см. [`docs/backup.md`](backup.md), либо запасной `pg_dump`,
+если офсайт-бэкап не настроен); `git merge --ff-only origin/main`; сборка и
+запуск образов, тегированных новым SHA; ожидание health и HTTPS; и обновление
+webhook **без сброса** ожидающих updates (`set-webhook --keep-pending`) — иначе
+каждый релиз терял бы сообщения, пришедшие во время выкладки.
 
-## 10. Откат приложения
+`.env` и секреты релиз не трогает — ротация только через раздел 10.
+
+## 9. Откат приложения
 
 Если новая версия не проходит smoke test, откатите **код и контейнеры**, но не
 делайте автоматический downgrade базы:
 
 ```bash
 cd /opt/pohvali
-git checkout --detach "$(cat .deploy-previous)"
-sudo docker compose up -d --build --remove-orphans
-sudo docker compose ps -a
-curl -fsS https://app.example.com/api/v1/health
+sudo ./scripts/deploy.sh rollback
 ```
 
-Миграции production должны оставаться обратно совместимыми. `alembic downgrade
-base` здесь запрещён: он удаляет таблицы и данные. При несовместимой или
-повреждённой схеме нужен forward-fix либо восстановление из проверенного backup.
-Перед следующим обычным обновлением вернитесь на ветку:
+`rollback` переключает `POHVALA_IMAGE_TAG` на SHA из `.deploy-previous` и
+поднимает стек **без пересборки** (`docker compose up -d`, без `--build`). Перед
+этим скрипт сравнивает текущую ревизию Alembic в БД с ревизиями, известными коду
+предыдущего релиза: если новая миграция уже применилась и предыдущий код её не
+знает, `rollback` **останавливается** и просит восстановить БД из бэкапа — он
+никогда не выполняет `alembic downgrade` автоматически. Без записанного
+`.deploy-previous` (например, сразу после bootstrap) команда тоже отказывает с
+понятным сообщением.
+
+Миграции production должны оставаться обратно совместимыми (expand→contract), тогда
+откат кода без отката схемы безопасен. `alembic downgrade base` в production
+запрещён: он удаляет таблицы и данные. При несовместимой или повреждённой схеме
+нужен forward-fix либо восстановление из проверенного backup — `rollback` сам на
+это укажет, если обнаружит несовместимость.
+
+## 10. Ротация секретов
+
+Обычный деплой и bootstrap никогда не перегенерируют и не перезаписывают
+`.env`. Если нужно сменить webhook secret/path (например, после подозрения на
+утечку) — отдельная явная подкоманда:
 
 ```bash
-git switch main
+cd /opt/pohvali
+sudo ./scripts/deploy.sh rotate-secrets
 ```
+
+Она ротирует `TELEGRAM_WEBHOOK_SECRET` и `TELEGRAM_WEBHOOK_PATH`, атомарно
+обновляет `.env` (права `600` сохраняются), перезапускает стек и
+перерегистрирует webhook с сохранением ожидающих updates. Пароль PostgreSQL по
+умолчанию не трогается; чтобы сменить и его, добавьте `--rotate-db-password` —
+это на несколько секунд прерывает соединения backend с базой, скрипт
+предупреждает об этом перед выполнением.
 
 ## 11. Эксплуатационный минимум
 
 - Логи каждого контейнера ограничены тремя файлами по 10 MB в `compose.yaml`.
-- Раз в неделю проверяйте `df -h`, `sudo docker compose ps -a` и health endpoint.
+- Раз в неделю проверяйте `df -h` и `sudo ./scripts/deploy.sh status` (контейнеры,
+  SHA, health, webhook).
 - Нового маскота владелец добавляет без deploy и правки БД: после назначения роли
   отправьте в личном чате с ботом PNG-документ (до 1 MiB, 256–1024 px, с alpha-каналом)
   с подписью `/add_mascot <code> <порог> | <Имя> | <Описание>`. Повторная отправка
