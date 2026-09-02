@@ -251,6 +251,16 @@ export function App({
         mascot={mascot}
       />
 
+      <section className="gentle-prompt">
+        <div>
+          <p className="eyebrow">Можно даже за мелочь</p>
+          <h2>За что ты хочешь похвалить себя сегодня?</h2>
+        </div>
+        <button className="primary-button" onClick={() => setComposerOpen(true)}>
+          Написать
+        </button>
+      </section>
+
       <MonthCalendar
         year={viewMonth.year}
         month={viewMonth.month}
@@ -287,16 +297,6 @@ export function App({
           )}
         </section>
       )}
-
-      <section className="gentle-prompt">
-        <div>
-          <p className="eyebrow">Можно даже за мелочь</p>
-          <h2>За что ты хочешь похвалить себя сегодня?</h2>
-        </div>
-        <button className="primary-button" onClick={() => setComposerOpen(true)}>
-          Написать
-        </button>
-      </section>
 
       {reminderOffer && <ReminderOffer onAnswer={reminderOffer.onAnswer} />}
 

@@ -35,4 +35,23 @@ describe("home screen rewards hero", () => {
     expect(markup).not.toContain('aria-label="12 звёзд"');
     expect(markup).not.toContain("печен");
   });
+
+  it("puts the invitation to write above the calendar", () => {
+    vi.stubGlobal("window", { Telegram: undefined });
+
+    const markup = renderToStaticMarkup(createElement<AppProps>(App, {
+      initialViewMonth: { year: 2026, month: 9 },
+    }));
+
+    // Writing a praise is the point of the screen; the calendar looks back on
+    // it, so it follows rather than leads.
+    const prompt = markup.indexOf('class="gentle-prompt"');
+    const calendar = markup.indexOf('class="calendar"');
+    const hero = markup.indexOf('class="mascot-hero"');
+
+    expect(prompt).toBeGreaterThan(-1);
+    expect(calendar).toBeGreaterThan(-1);
+    expect(hero).toBeLessThan(prompt);
+    expect(prompt).toBeLessThan(calendar);
+  });
 });
