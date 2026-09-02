@@ -28,6 +28,25 @@ _MAX_NAME_LENGTH = 64
 _MAX_BLURB_LENGTH = 160
 
 
+def extract_add_mascot_actor_id(update: dict) -> int | None:
+    """Return the actor for a private update carrying an add-mascot token."""
+    message = update.get("message")
+    if not isinstance(message, dict):
+        return None
+    chat = message.get("chat")
+    if not isinstance(chat, dict) or chat.get("type") != "private":
+        return None
+    caption = message.get("caption")
+    if not isinstance(caption, str):
+        return None
+    command_token = caption.strip().partition(" ")[0].partition("@")[0]
+    if command_token != "/add_mascot":
+        return None
+    author = message.get("from")
+    actor_id = author.get("id") if isinstance(author, dict) else None
+    return actor_id if type(actor_id) is int else None
+
+
 @dataclass(frozen=True, slots=True)
 class AdminCommand:
     """A fully parsed, authorized command awaiting download and validation."""
@@ -60,7 +79,7 @@ class AdminReply:
 def parse_add_mascot(
     update: dict,
     *,
-    admin_ids: frozenset[int],
+    authorized: bool,
 ) -> AdminCommand | AdminCommandRefused | None:
     """Parse a private-chat ``/add_mascot`` caption, else return ``None``."""
     message = update.get("message")
@@ -82,9 +101,7 @@ def parse_add_mascot(
     if command_token != "/add_mascot":
         return None
 
-    author = message.get("from")
-    author_id = author.get("id") if isinstance(author, dict) else None
-    if type(author_id) is not int or author_id not in admin_ids:
+    if not authorized:
         return AdminCommandRefused(chat_id, DENIED_TEXT)
 
     document = message.get("document")

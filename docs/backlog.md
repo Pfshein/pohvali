@@ -124,13 +124,13 @@
 
 **Статус:** выполнено — команда `/add_mascot <code> <порог> | <Имя> | <Описание>`
 с PNG-документом обрабатывается webhook'ом для Telegram ID из
-`TELEGRAM_ADMIN_IDS`; PNG (≤1 MiB, 256–1024 px, alpha) хранится в БД, картинка
+роли `admin` в PostgreSQL; PNG (≤1 MiB, 256–1024 px, alpha) хранится в БД, картинка
 отдаётся по `/api/v1/mascots/{code}/image`, каталог подхватывает нового маскота
 без deploy. Инструкция — в [`docs/deploy.md`](deploy.md), § 11.
 
 **Цель:** владелец проекта добавляет нового маскота из личного чата с Telegram-ботом без изменения кода, пересборки frontend и ручной правки БД.
 
-**Интерфейс:** PNG отправляется как документ с подписью `/add_mascot <code> <unlock_threshold> | <name> | <blurb>`. Команда принимается только в личном чате от Telegram ID из `TELEGRAM_ADMIN_IDS`; для остальных пользователей она недоступна.
+**Интерфейс:** PNG отправляется как документ с подписью `/add_mascot <code> <unlock_threshold> | <name> | <blurb>`. Команда принимается только в личном чате пользователем с ролью `admin`; для остальных пользователей она недоступна.
 
 **Хранение и выдача:** метаданные и исходный PNG сохраняются в PostgreSQL одной транзакцией; изображение отдаётся через стабильный endpoint `/api/v1/mascots/{code}/image`. `GET /api/v1/mascots` возвращает активный каталог, а frontend использует его вместо зашитого списка, поэтому добавленный маскот появляется без нового deploy.
 
@@ -237,12 +237,12 @@ production вынесена в PH-707. До её выполнения PH-704 о�
 
 ### PH-801 · P1 · Роли пользователей и admin-авторизация
 
-**Статус:** запланировано. Подробный дизайн:
+**Статус:** реализовано, ожидает DB verification. Подробный дизайн:
 [`docs/superpowers/specs/2026-09-02-user-roles-admin-authorization-design.md`](superpowers/specs/2026-09-02-user-roles-admin-authorization-design.md),
 пошаговая реализация:
 [`docs/superpowers/plans/2026-09-02-user-roles-admin-authorization.md`](superpowers/plans/2026-09-02-user-roles-admin-authorization.md).
 
-**Цель:** заменить feature-specific список `TELEGRAM_ADMIN_IDS` одной серверной
+**Цель:** заменить feature-specific список admin IDs одной серверной
 моделью ролей. Каждый аккаунт имеет роль `user` или `admin` в PostgreSQL;
 Telegram подтверждает личность, а полномочия всегда проверяет backend по БД.
 
@@ -254,7 +254,7 @@ Telegram подтверждает личность, а полномочия вс
 сессия не может изменить роль; CLI идемпотентно меняет роль только существующей
 строке; user/неизвестный получают одинаковый `403` от admin guard;
 `/add_mascot` работает только для DB-admin и не скачивает файл для остальных;
-`TELEGRAM_ADMIN_IDS` удалён из runtime-конфигурации; backend, DB integration и
+старый список admin IDs удалён из runtime-конфигурации; backend, DB integration и
 frontend quality gates зелёные.
 
 ## Рекомендуемые релизы

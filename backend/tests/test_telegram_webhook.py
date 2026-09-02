@@ -34,7 +34,6 @@ def build_client() -> tuple[TestClient, RecordingSender]:
         app_domain="https://app.example.com",
         telegram_webhook_path=WEBHOOK_PATH,
         telegram_webhook_secret=WEBHOOK_SECRET,
-        telegram_admin_ids=str(ADMIN_ID),
     )
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_reply_sender] = lambda: sender
@@ -150,7 +149,11 @@ def valid_png_bytes() -> bytes:
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IEND", b"")
 
 
-def add_mascot_update(*, from_id: int = ADMIN_ID) -> dict:
+def add_mascot_update(
+    *,
+    from_id: int = ADMIN_ID,
+    caption: str = "/add_mascot test_umka 411 | Умка | Тихий и загадочный",
+) -> dict:
     return {
         "update_id": 43,
         "message": {
@@ -158,7 +161,7 @@ def add_mascot_update(*, from_id: int = ADMIN_ID) -> dict:
             "date": 1_700_000_000,
             "chat": {"id": from_id, "type": "private"},
             "from": {"id": from_id, "is_bot": False},
-            "caption": "/add_mascot test_umka 411 | Умка | Тихий и загадочный",
+            "caption": caption,
             "document": {
                 "file_id": "AgAC-secret-file-id",
                 "file_unique_id": "unique",
@@ -192,7 +195,10 @@ def test_admin_add_mascot_creates_mascot_and_replies_with_preview() -> None:
     client, sender = build_client()
     downloads = override_downloader(valid_png_bytes())
 
-    with patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service:
+    with (
+        patch("app.api.v1.telegram.is_admin_user", new=AsyncMock(return_value=True)),
+        patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service,
+    ):
         response = client.post(
             f"/api/v1/telegram/{WEBHOOK_PATH}",
             headers={SECRET_HEADER: WEBHOOK_SECRET},
@@ -220,7 +226,10 @@ def test_redelivered_add_mascot_replies_calmly_without_second_insert() -> None:
     client, sender = build_client()
     override_downloader(valid_png_bytes())
 
-    with patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=False)):
+    with (
+        patch("app.api.v1.telegram.is_admin_user", new=AsyncMock(return_value=True)),
+        patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=False)),
+    ):
         response = client.post(
             f"/api/v1/telegram/{WEBHOOK_PATH}",
             headers={SECRET_HEADER: WEBHOOK_SECRET},
@@ -235,9 +244,12 @@ def test_redelivered_add_mascot_replies_calmly_without_second_insert() -> None:
 
 def test_non_admin_add_mascot_is_denied_without_side_effects() -> None:
     client, sender = build_client()
-    override_downloader(valid_png_bytes())
+    downloads = override_downloader(valid_png_bytes())
 
-    with patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service:
+    with (
+        patch("app.api.v1.telegram.is_admin_user", new=AsyncMock(return_value=False)),
+        patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service,
+    ):
         response = client.post(
             f"/api/v1/telegram/{WEBHOOK_PATH}",
             headers={SECRET_HEADER: WEBHOOK_SECRET},
@@ -246,16 +258,83 @@ def test_non_admin_add_mascot_is_denied_without_side_effects() -> None:
 
     assert response.status_code == 200
     service.assert_not_awaited()
+    assert downloads == []
     assert len(sender.replies) == 1
     assert "администратору" in sender.replies[0].text
     assert sender.replies[0].document_file_id is None
+
+
+def test_unknown_user_gets_the_same_denial_without_side_effects() -> None:
+    client, sender = build_client()
+    downloads = override_downloader(valid_png_bytes())
+
+    with (
+        patch("app.api.v1.telegram.is_admin_user", new=AsyncMock(return_value=False)),
+        patch("app.api.v1.telegram.add_mascot", new=AsyncMock()) as service,
+    ):
+        response = client.post(
+            f"/api/v1/telegram/{WEBHOOK_PATH}",
+            headers={SECRET_HEADER: WEBHOOK_SECRET},
+            json=add_mascot_update(from_id=404),
+        )
+
+    assert response.status_code == 200
+    service.assert_not_awaited()
+    assert downloads == []
+    assert len(sender.replies) == 1
+    assert "администратору" in sender.replies[0].text
+
+
+def test_non_admin_malformed_command_does_not_reveal_format() -> None:
+    client, sender = build_client()
+    downloads = override_downloader(valid_png_bytes())
+    malformed = "/add_mascot definitely malformed"
+
+    with patch(
+        "app.api.v1.telegram.is_admin_user",
+        new=AsyncMock(return_value=False),
+    ):
+        response = client.post(
+            f"/api/v1/telegram/{WEBHOOK_PATH}",
+            headers={SECRET_HEADER: WEBHOOK_SECRET},
+            json=add_mascot_update(from_id=42, caption=malformed),
+        )
+
+    assert response.status_code == 200
+    assert downloads == []
+    assert len(sender.replies) == 1
+    assert "администратору" in sender.replies[0].text
+    assert "формат" not in sender.replies[0].text.casefold()
+
+
+def test_admin_malformed_command_gets_format_guidance() -> None:
+    client, sender = build_client()
+    downloads = override_downloader(valid_png_bytes())
+
+    with patch(
+        "app.api.v1.telegram.is_admin_user",
+        new=AsyncMock(return_value=True),
+    ):
+        response = client.post(
+            f"/api/v1/telegram/{WEBHOOK_PATH}",
+            headers={SECRET_HEADER: WEBHOOK_SECRET},
+            json=add_mascot_update(caption="/add_mascot definitely malformed"),
+        )
+
+    assert response.status_code == 200
+    assert downloads == []
+    assert len(sender.replies) == 1
+    assert "формат" in sender.replies[0].text.casefold()
 
 
 def test_invalid_png_is_refused_without_touching_catalog() -> None:
     client, sender = build_client()
     override_downloader(b"definitely-not-a-png")
 
-    with patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service:
+    with (
+        patch("app.api.v1.telegram.is_admin_user", new=AsyncMock(return_value=True)),
+        patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service,
+    ):
         response = client.post(
             f"/api/v1/telegram/{WEBHOOK_PATH}",
             headers={SECRET_HEADER: WEBHOOK_SECRET},
@@ -272,7 +351,10 @@ def test_download_failure_replies_retry_message() -> None:
     client, sender = build_client()
     override_downloader(RuntimeError("telegram is down"))
 
-    with patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service:
+    with (
+        patch("app.api.v1.telegram.is_admin_user", new=AsyncMock(return_value=True)),
+        patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)) as service,
+    ):
         response = client.post(
             f"/api/v1/telegram/{WEBHOOK_PATH}",
             headers={SECRET_HEADER: WEBHOOK_SECRET},
@@ -291,6 +373,7 @@ def test_add_mascot_logs_never_contain_file_id_or_ids(caplog) -> None:
 
     with (
         caplog.at_level(logging.DEBUG),
+        patch("app.api.v1.telegram.is_admin_user", new=AsyncMock(return_value=True)),
         patch("app.api.v1.telegram.add_mascot", new=AsyncMock(return_value=True)),
     ):
         client.post(

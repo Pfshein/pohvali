@@ -212,10 +212,6 @@ BOT_TOKEN=<token-from-BotFather>
 TELEGRAM_WEBHOOK_SECRET=<second-openssl-value>
 TELEGRAM_WEBHOOK_PATH=<third-openssl-value>
 
-# Telegram id владельца для admin-команды /add_mascot (PH-405).
-# Узнать свой id можно у @userinfobot. Несколько админов — через запятую.
-TELEGRAM_ADMIN_IDS=<your-telegram-id>
-
 POSTGRES_DB=pohvala
 POSTGRES_USER=pohvala
 POSTGRES_PASSWORD=<first-openssl-value>
@@ -254,6 +250,19 @@ sudo docker compose logs --tail=100 caddy backend migrate
 head` и идемпотентного сида каталога маскотов, и `backend` стартует только после
 его успешного завершения. В `docker compose ps -a` он отображается как `exited (0)`
 — это нормально.
+
+После первой выкладки назначьте первого администратора для уже открывшего бота
+или Mini App аккаунта:
+
+```bash
+sudo docker compose exec -T backend \
+  python -m app.modules.users.set_role 123456789 admin
+```
+
+Замените `123456789` на Telegram ID владельца (его можно узнать через
+`@userinfobot`). Для снятия роли выполните ту же команду с `user`. После проверки
+назначения удалите старую переменную admin ID из production `.env`, если она там
+осталась.
 
 Не используйте `--scale backend`. Caddy автоматически запросит TLS-сертификат;
 DNS и открытые порты 80/443 должны уже указывать на этот VPS.
@@ -378,11 +387,10 @@ git switch main
 
 - Логи каждого контейнера ограничены тремя файлами по 10 MB в `compose.yaml`.
 - Раз в неделю проверяйте `df -h`, `sudo docker compose ps -a` и health endpoint.
-- Нового маскота владелец добавляет без deploy и правки БД: в личном чате с
-  ботом отправьте PNG-документ (до 1 MiB, 256–1024 px, с alpha-каналом) с
-  подписью `/add_mascot <code> <порог> | <Имя> | <Описание>`. Команда работает
-  только для Telegram ID из `TELEGRAM_ADMIN_IDS`; повторная отправка того же
-  сообщения безопасна. Маскот сразу появляется в каталоге приложения, картинка
+- Нового маскота владелец добавляет без deploy и правки БД: после назначения роли
+  отправьте в личном чате с ботом PNG-документ (до 1 MiB, 256–1024 px, с alpha-каналом)
+  с подписью `/add_mascot <code> <порог> | <Имя> | <Описание>`. Повторная отправка
+  того же сообщения безопасна. Маскот сразу появляется в каталоге приложения, картинка
   отдаётся с backend по `/api/v1/mascots/{code}/image`.
 - Установленные пакеты безопасности обновляет `unattended-upgrades`; reboot после
   обновления ядра выполняйте в запланированное окно и повторяйте smoke test.

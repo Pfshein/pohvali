@@ -10,10 +10,10 @@ from app.api.dependencies import (
     ReplySenderDependency,
     SettingsDependency,
 )
-from app.core.config import Settings
 from app.modules.bot.add_mascot import (
     AdminCommandRefused,
     AdminReply,
+    extract_add_mascot_actor_id,
     parse_add_mascot,
 )
 from app.modules.bot.messages import (
@@ -29,6 +29,7 @@ from app.modules.mascots.service import (
     add_mascot,
 )
 from app.modules.reminders.service import record_dm_available
+from app.modules.users.service import is_admin_user
 
 logger = logging.getLogger("app.telegram.webhook")
 
@@ -66,7 +67,6 @@ async def telegram_webhook(
 
     await _handle_add_mascot(
         update,
-        settings=settings,
         session=session,
         download_file=download_file,
         send_reply=send_reply,
@@ -79,12 +79,16 @@ async def telegram_webhook(
 async def _handle_add_mascot(
     update: dict,
     *,
-    settings: Settings,
     session: DatabaseSession,
     download_file: FileDownloaderDependency,
     send_reply: ReplySenderDependency,
 ) -> None:
-    command = parse_add_mascot(update, admin_ids=settings.telegram_admin_id_set)
+    actor_id = extract_add_mascot_actor_id(update)
+    if actor_id is None:
+        return
+
+    authorized = await is_admin_user(session, telegram_id=actor_id)
+    command = parse_add_mascot(update, authorized=authorized)
     if command is None:
         return
 

@@ -27,9 +27,11 @@ export async function openSession(
     || typeof payload.id !== "string"
     || !("timezone" in payload)
     || typeof payload.timezone !== "string"
+    || !("role" in payload)
+    || (payload.role !== "user" && payload.role !== "admin")
   ) {
     throw new Error("Could not open Telegram session");
   }
 
-  return { id: payload.id, timezone: payload.timezone };
+  return { id: payload.id, timezone: payload.timezone, role: payload.role };
 }

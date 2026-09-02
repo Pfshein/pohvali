@@ -28,6 +28,7 @@ def test_user_profile_reads_only_public_orm_attributes() -> None:
         id=UUID("0ecaf26f-ee72-4f06-ae79-41198dd1ac6d"),
         telegram_id=991_001,
         timezone="UTC",
+        role="user",
         username="must-not-be-returned",
     )
 
@@ -36,4 +37,5 @@ def test_user_profile_reads_only_public_orm_attributes() -> None:
     assert profile.model_dump(mode="json") == {
         "id": "0ecaf26f-ee72-4f06-ae79-41198dd1ac6d",
         "timezone": "UTC",
+        "role": "user",
     }

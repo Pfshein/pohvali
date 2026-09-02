@@ -8,6 +8,8 @@ from app.api.rate_limit import FixedWindowRateLimiter
 from app.core.config import Settings, get_settings
 from app.core.db import get_db_session
 from app.modules.bot.sender import AiogramReplySender, ReplySender
+from app.modules.users.models import User, UserRole
+from app.modules.users.repository import get_user_by_telegram_id
 from app.security.telegram import InvalidInitData, TelegramIdentity, validate_init_data
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -43,6 +45,25 @@ def _unauthorized() -> HTTPException:
 
 
 TelegramAuth = Annotated[TelegramIdentity, Depends(get_telegram_identity)]
+
+
+async def require_admin_user(
+    identity: TelegramAuth,
+    session: DatabaseSession,
+) -> User:
+    # Close the read transaction before the endpoint starts. Admin endpoints
+    # reuse this session and their services own their own transaction blocks.
+    async with session.begin():
+        user = await get_user_by_telegram_id(session, telegram_id=identity.telegram_id)
+    if user is None or user.role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user
+
+
+AdminUser = Annotated[User, Depends(require_admin_user)]
 
 
 def get_reply_sender(settings: SettingsDependency) -> ReplySender:

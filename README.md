@@ -311,6 +311,17 @@ docker compose run --rm \
 Скрипт берёт `BOT_TOKEN`, `APP_DOMAIN`, `TELEGRAM_WEBHOOK_PATH` и `TELEGRAM_WEBHOOK_SECRET`
 из окружения приложения и запрашивает у Telegram только `message`-обновления.
 
+Роль первого администратора назначается после открытия пользователем бота или Mini App:
+
+```bash
+sudo docker compose exec -T backend \
+  python -m app.modules.users.set_role 123456789 admin
+```
+
+Замените `123456789` на нужный Telegram ID. Для снятия роли используйте тот же
+командный интерфейс с аргументом `user`. Команда изменяет только уже существующий
+аккаунт и не принимает роль из HTTP-запросов.
+
 ## Документы
 
 - [Product brief](docs/product-brief.md)

@@ -153,7 +153,7 @@ async def read_test_user(database_url: str, telegram_id: int) -> list[object]:
                 (
                     await connection.execute(
                         text(
-                            "SELECT id, telegram_id, timezone "
+                            "SELECT id, telegram_id, timezone, role "
                             "FROM users WHERE telegram_id = :telegram_id"
                         ),
                         {"telegram_id": telegram_id},
@@ -232,12 +232,14 @@ def test_session_is_idempotent_and_updates_timezone(
     )
 
     assert first.status_code == 200
-    assert set(first.json()) == {"id", "timezone"}
+    assert set(first.json()) == {"id", "timezone", "role"}
+    assert first.json()["role"] == "user"
     assert first.json()["timezone"] == "UTC"
     assert second.status_code == 200
     assert second.json() == {
         "id": first.json()["id"],
         "timezone": "Europe/Moscow",
+        "role": "user",
     }
 
     rows = asyncio.run(read_test_user(database_url, TEST_TELEGRAM_IDS[0]))
@@ -245,6 +247,7 @@ def test_session_is_idempotent_and_updates_timezone(
     assert rows[0].id.hex == first.json()["id"].replace("-", "")
     assert rows[0].telegram_id == TEST_TELEGRAM_IDS[0]
     assert rows[0].timezone == "Europe/Moscow"
+    assert rows[0].role == "user"
 
 
 @pytest.mark.skipif(not RUN_DATABASE_TESTS, reason="requires isolated PostgreSQL")

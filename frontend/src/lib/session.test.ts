@@ -18,6 +18,7 @@ describe("session transport", () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({
       id: "0ecaf26f-ee72-4f06-ae79-41198dd1ac6d",
       timezone: "Europe/Moscow",
+      role: "admin",
       telegram_id: 42,
       first_name: "must be ignored",
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
@@ -35,7 +36,34 @@ describe("session transport", () => {
     expect(profile).toEqual({
       id: "0ecaf26f-ee72-4f06-ae79-41198dd1ac6d",
       timezone: "Europe/Moscow",
+      role: "admin",
     });
+  });
+
+  it("accepts a regular user role", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      id: "0ecaf26f-ee72-4f06-ae79-41198dd1ac6d",
+      timezone: "Europe/Moscow",
+      role: "user",
+    }), { status: 200 }));
+
+    await expect(openSession(fakeTelegramClient(), fetcher)).resolves.toMatchObject({
+      role: "user",
+    });
+  });
+
+  it("rejects missing or unknown roles with a generic session error", async () => {
+    for (const role of [undefined, "owner"]) {
+      const fetcher = vi.fn(async () => new Response(JSON.stringify({
+        id: "0ecaf26f-ee72-4f06-ae79-41198dd1ac6d",
+        timezone: "Europe/Moscow",
+        ...(role === undefined ? {} : { role }),
+      }), { status: 200 }));
+
+      await expect(openSession(fakeTelegramClient(), fetcher)).rejects.toThrow(
+        "Could not open Telegram session",
+      );
+    }
   });
 
   it("returns a generic error without exposing the response body", async () => {

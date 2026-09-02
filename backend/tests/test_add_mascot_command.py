@@ -2,11 +2,11 @@ from app.modules.bot.add_mascot import (
     DENIED_TEXT,
     AdminCommand,
     AdminCommandRefused,
+    extract_add_mascot_actor_id,
     parse_add_mascot,
 )
 from app.modules.bot.messages import FORBIDDEN_TONE_WORDS
 
-ADMIN_IDS = frozenset({700})
 VALID_PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 48
 
 
@@ -36,7 +36,7 @@ def add_mascot_update(
 
 
 def test_valid_admin_command_is_parsed() -> None:
-    command = parse_add_mascot(add_mascot_update(), admin_ids=ADMIN_IDS)
+    command = parse_add_mascot(add_mascot_update(), authorized=True)
 
     assert isinstance(command, AdminCommand)
     assert command.chat_id == 700
@@ -50,15 +50,32 @@ def test_valid_admin_command_is_parsed() -> None:
 def test_command_accepts_bot_mention() -> None:
     command = parse_add_mascot(
         add_mascot_update(caption="/add_mascot@PohvaliSebyaBot umka 40 | Умка | Тихий"),
-        admin_ids=ADMIN_IDS,
+        authorized=True,
     )
 
     assert isinstance(command, AdminCommand)
     assert command.code == "umka"
 
 
+def test_actor_helper_accepts_private_command_and_bot_mention() -> None:
+    assert extract_add_mascot_actor_id(add_mascot_update()) == 700
+    assert extract_add_mascot_actor_id(
+        add_mascot_update(caption="/add_mascot@PohvaliSebyaBot umka 40 | Умка | Тихий")
+    ) == 700
+
+
+def test_actor_helper_rejects_non_command_group_and_invalid_actor() -> None:
+    assert extract_add_mascot_actor_id(add_mascot_update(chat_type="group")) is None
+    assert extract_add_mascot_actor_id(
+        add_mascot_update(caption="not a command")
+    ) is None
+    update = add_mascot_update()
+    update["message"]["from"] = {"id": "700"}
+    assert extract_add_mascot_actor_id(update) is None
+
+
 def test_non_admin_gets_calm_denial() -> None:
-    result = parse_add_mascot(add_mascot_update(from_id=42), admin_ids=ADMIN_IDS)
+    result = parse_add_mascot(add_mascot_update(from_id=42), authorized=False)
 
     assert isinstance(result, AdminCommandRefused)
     assert result.chat_id == 42
@@ -67,29 +84,29 @@ def test_non_admin_gets_calm_denial() -> None:
 
 def test_group_chat_is_ignored() -> None:
     assert (
-        parse_add_mascot(add_mascot_update(chat_type="group"), admin_ids=ADMIN_IDS) is None
+        parse_add_mascot(add_mascot_update(chat_type="group"), authorized=True) is None
     )
 
 
 def test_updates_without_command_caption_are_ignored() -> None:
-    assert parse_add_mascot({"update_id": 1}, admin_ids=ADMIN_IDS) is None
+    assert parse_add_mascot({"update_id": 1}, authorized=True) is None
     assert (
         parse_add_mascot(
-            add_mascot_update(caption="просто подпись без команды"), admin_ids=ADMIN_IDS
+            add_mascot_update(caption="просто подпись без команды"), authorized=True
         )
         is None
     )
     assert (
         parse_add_mascot(
             add_mascot_update(caption="/add_mascotty umka 40 | Умка | Тихий"),
-            admin_ids=ADMIN_IDS,
+            authorized=True,
         )
         is None
     )
 
 
 def test_command_without_document_is_refused_with_guidance() -> None:
-    result = parse_add_mascot(add_mascot_update(with_document=False), admin_ids=ADMIN_IDS)
+    result = parse_add_mascot(add_mascot_update(with_document=False), authorized=True)
 
     assert isinstance(result, AdminCommandRefused)
     assert "PNG" in result.text
@@ -97,7 +114,7 @@ def test_command_without_document_is_refused_with_guidance() -> None:
 
 def test_oversized_file_hint_is_refused_early() -> None:
     result = parse_add_mascot(
-        add_mascot_update(file_size=2 * 1024 * 1024), admin_ids=ADMIN_IDS
+        add_mascot_update(file_size=2 * 1024 * 1024), authorized=True
     )
 
     assert isinstance(result, AdminCommandRefused)
@@ -116,7 +133,7 @@ def test_format_errors_explain_what_to_fix() -> None:
         "/add_mascot 40 | Умка | Тихий": "формат",
     }
     for caption, expected_fragment in cases.items():
-        result = parse_add_mascot(add_mascot_update(caption=caption), admin_ids=ADMIN_IDS)
+        result = parse_add_mascot(add_mascot_update(caption=caption), authorized=True)
         assert isinstance(result, AdminCommandRefused), caption
         assert expected_fragment in result.text.casefold(), caption
 
@@ -126,7 +143,7 @@ def test_boundary_lengths_are_accepted() -> None:
     max_blurb = "О" * 160
     command = parse_add_mascot(
         add_mascot_update(caption=f"/add_mascot umka 40 | {max_name} | {max_blurb}"),
-        admin_ids=ADMIN_IDS,
+        authorized=True,
     )
 
     assert isinstance(command, AdminCommand)
@@ -139,7 +156,7 @@ def test_too_long_name_or_blurb_is_refused() -> None:
         f"/add_mascot umka 40 | {'И' * 65} | Тихий",
         f"/add_mascot umka 40 | Умка | {'О' * 161}",
     ):
-        result = parse_add_mascot(add_mascot_update(caption=caption), admin_ids=ADMIN_IDS)
+        result = parse_add_mascot(add_mascot_update(caption=caption), authorized=True)
         assert isinstance(result, AdminCommandRefused), caption
 
 

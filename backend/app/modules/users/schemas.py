@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -21,3 +22,4 @@ class UserProfile(BaseModel):
 
     id: UUID
     timezone: str
+    role: Literal["user", "admin"]

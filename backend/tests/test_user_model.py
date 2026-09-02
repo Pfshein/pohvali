@@ -1,6 +1,10 @@
 from sqlalchemy import BigInteger, DateTime, String, Uuid
 
-from app.modules.users.models import User
+from app.modules.users.models import User, UserRole
+
+
+def test_user_role_has_only_user_and_admin_values() -> None:
+    assert [role.value for role in UserRole] == ["user", "admin"]
 
 
 def test_user_model_persists_only_the_minimal_identity() -> None:
@@ -16,7 +20,14 @@ def test_user_model_persists_only_the_minimal_identity() -> None:
         "language_code",
     }
 
-    assert columns == {"id", "telegram_id", "timezone", "active_mascot_code", "created_at"}
+    assert columns == {
+        "id",
+        "telegram_id",
+        "timezone",
+        "role",
+        "active_mascot_code",
+        "created_at",
+    }
     assert columns.isdisjoint(forbidden_pii)
 
 
@@ -54,3 +65,18 @@ def test_database_generates_uuid_and_timezone_aware_creation_time() -> None:
     assert created_at.nullable is False
     assert created_at.server_default is not None
     assert str(created_at.server_default.arg) == "now()"
+
+
+def test_role_is_a_restricted_required_string_with_safe_defaults() -> None:
+    role = User.__table__.c.role
+
+    assert isinstance(role.type, String)
+    assert role.type.length == 16
+    assert role.nullable is False
+    assert role.default is not None
+    assert role.default.arg == "user"
+    assert role.server_default is not None
+    assert str(role.server_default.arg) == "'user'"
+    assert any(
+        constraint.name == "ck_users_role_valid" for constraint in User.__table__.constraints
+    )

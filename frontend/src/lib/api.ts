@@ -2,9 +2,12 @@ export interface SessionRequest {
   timezone: string;
 }
 
+export type UserRole = "user" | "admin";
+
 export interface SessionProfile {
   id: string;
   timezone: string;
+  role: UserRole;
 }
 
 export interface PraiseCreateRequest {

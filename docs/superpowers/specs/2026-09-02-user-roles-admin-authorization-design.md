@@ -110,15 +110,17 @@ Backend каждый раз загружает актуального польз
 
 ```bash
 sudo docker compose exec -T backend \
-  python -m app.modules.users.set_role <telegram_id> admin
+  python -m app.modules.users.set_role 123456789 admin
 ```
 
 Снятие роли:
 
 ```bash
 sudo docker compose exec -T backend \
-  python -m app.modules.users.set_role <telegram_id> user
+  python -m app.modules.users.set_role 123456789 user
 ```
+
+В обеих командах `123456789` заменяется на нужный Telegram ID.
 
 Команда принимает ровно два позиционных аргумента: положительный integer
 Telegram ID и `user|admin`. Она:
@@ -250,4 +252,3 @@ Telegram. Автор команды определяется по `message.from.
 9. В логах нет Telegram ID, caption, `file_id`, изображения или DATABASE_URL.
 10. `ruff check .`, полный backend `pytest` с PostgreSQL и frontend
     `npm run check` проходят.
-
