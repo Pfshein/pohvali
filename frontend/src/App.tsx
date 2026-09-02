@@ -20,7 +20,7 @@ import { findMascot, unlockedMascotMessage } from "./lib/mascots";
 import type { MascotCollection, PurchaseOutcome } from "./lib/mascots-api";
 import { russianMonthNameGenitive, russianMonthNamePrepositional } from "./lib/month-grid";
 import type { ReminderControls } from "./lib/reminders-api";
-import type { DayEntry } from "./lib/praise-api";
+import { dayEntriesAfterSave, type DayEntry } from "./lib/praise-api";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
 
 function shiftMonth(current: MonthRef, delta: number): MonthRef {
@@ -198,6 +198,12 @@ export function App({
           ? { ...day, count: day.count + 1 }
           : day);
       });
+      setDayEntries((entries) => dayEntriesAfterSave(
+        entries,
+        selectedDay === null ? null : dateInMonth(viewMonth, selectedDay),
+        result,
+        text,
+      ));
       setPraise("");
       setComposerOpen(false);
     } catch {
