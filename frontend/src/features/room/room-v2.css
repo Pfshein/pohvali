@@ -1,0 +1,474 @@
+/*
+ * Room UI v2 (PH-902) — isolated tokens, layout and responsive styles.
+ * Imported only from the lazy room entry so the classic bundle never
+ * pulls these rules or the Pixi chunk.
+ */
+
+.room-home {
+  --room-wall: #f6d3a2;
+  --room-floor: #e8bd82;
+  --room-surface: rgba(255, 239, 211, 0.82);
+  --room-olive: #74754b;
+  --room-olive-strong: #5f6238;
+  --room-amber: #eaa24d;
+  --room-cream: #fff3dc;
+  --room-shadow: 0 14px 40px rgba(111, 78, 40, 0.14);
+  --room-border: rgba(112, 82, 48, 0.10);
+  --room-ink: #513f28;
+
+  position: relative;
+  width: min(100%, 560px);
+  height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+  color: var(--room-ink);
+  font-family: "Nunito", system-ui, sans-serif;
+  background: linear-gradient(#f6d3a2 0 56%, #e8bd82 56% 100%);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  touch-action: manipulation;
+}
+
+/* Very weak paper grain over the whole room, no visible pattern. */
+.room-home::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.room-home__scene,
+.room-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.room-canvas canvas {
+  display: block;
+}
+
+/* ── Top HUD ─────────────────────────────────────────────────────────── */
+
+.room-hud {
+  position: absolute;
+  z-index: 3;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.room-hud__progress {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 72%;
+  padding: 11px 17px;
+  border: 1px solid var(--room-border);
+  border-radius: 999px;
+  background: var(--room-surface);
+  box-shadow: var(--room-shadow);
+  backdrop-filter: blur(10px);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--room-olive-strong);
+}
+
+.room-hud__progress svg { color: var(--room-amber); flex: none; }
+
+.room-hud__settings {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border: 1px solid var(--room-border);
+  border-radius: 50%;
+  background: var(--room-surface);
+  box-shadow: var(--room-shadow);
+  backdrop-filter: blur(10px);
+  color: var(--room-olive-strong);
+  cursor: pointer;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.room-hud__settings:hover { transform: rotate(24deg); }
+
+/* ── Speech bubble ───────────────────────────────────────────────────── */
+
+.room-speech {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: clamp(96px, 15.5vh, 168px);
+  width: min(86%, 356px);
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.room-speech__notch {
+  position: absolute;
+  top: -19px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--room-border);
+  border-radius: 50%;
+  background: var(--room-cream);
+  box-shadow: var(--room-shadow);
+  color: #c96f7b;
+  z-index: 2;
+}
+
+.room-speech__text {
+  position: relative;
+  margin: 0;
+  padding: 21px 22px 19px;
+  border: 1px solid var(--room-border);
+  border-radius: 24px;
+  background: rgba(255, 243, 220, 0.78);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--room-shadow);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--room-ink);
+}
+
+.room-speech__text::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(255, 243, 220, 0.78);
+  border-right: 1px solid var(--room-border);
+  border-bottom: 1px solid var(--room-border);
+}
+
+/* ── Lower zone above the nav ────────────────────────────────────────── */
+
+.room-lower {
+  position: absolute;
+  z-index: 3;
+  left: 18px;
+  right: 18px;
+  /* Clears the top of the protruding CTA (nav 118px, button lifted 54px),
+     so «Обустроить» is never overlapped by the central heart. */
+  bottom: calc(178px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.room-furnish {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 17px;
+  border: 1px solid var(--room-border);
+  border-radius: 999px;
+  background: var(--room-surface);
+  box-shadow: var(--room-shadow);
+  backdrop-filter: blur(10px);
+  color: var(--room-olive-strong);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-furnish[aria-pressed="true"] {
+  background: var(--room-olive);
+  border-color: transparent;
+  color: var(--room-cream);
+}
+
+.room-tagline {
+  margin: 0 2px 4px 0;
+  text-align: right;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: rgba(95, 98, 56, 0.78);
+}
+
+/* ── Bottom navigation ───────────────────────────────────────────────── */
+
+.room-nav {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(118px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+}
+
+/*
+ * The concave silhouette is masked into this backdrop layer, never into
+ * .room-nav itself: a mask applies to the element's whole subtree, so masking
+ * the nav would erase the CTA standing in the notch along with the surface.
+ */
+.room-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  background: var(--room-surface);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--room-border);
+  -webkit-mask-image: radial-gradient(circle 96px at 50% 0, transparent 78px, #000 88px);
+  mask-image: radial-gradient(circle 96px at 50% 0, transparent 78px, #000 88px);
+}
+
+/* Controls sit above the masked backdrop. */
+.room-nav > * {
+  position: relative;
+  z-index: 1;
+}
+
+.room-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--room-olive-strong);
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-nav__item:last-child { grid-column: 3; }
+
+.room-nav__cta-slot {
+  grid-column: 2;
+  width: 128px;
+  display: grid;
+  place-items: start center;
+}
+
+.room-nav__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 118px;
+  height: 118px;
+  margin-top: -54px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 32%, #83845a, var(--room-olive) 68%);
+  box-shadow:
+    0 16px 34px rgba(95, 98, 56, 0.34),
+    inset 0 -6px 14px rgba(58, 60, 34, 0.28),
+    inset 0 5px 10px rgba(255, 243, 220, 0.22);
+  color: var(--room-cream);
+  font-size: 15.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-nav__cta:active { transform: translateY(1px) scale(0.99); }
+
+/* ── Focus visibility on the warm background ─────────────────────────── */
+
+.room-home :focus-visible {
+  outline: 3px solid rgba(95, 98, 56, 0.62);
+  outline-offset: 3px;
+}
+
+/* ── Sheets ──────────────────────────────────────────────────────────── */
+
+.room-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  align-items: end;
+  background: rgba(72, 55, 30, 0.3);
+  backdrop-filter: blur(3px);
+}
+
+.room-sheet {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  max-height: min(80dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 22px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background: #fff8e9;
+  box-shadow: 0 -18px 60px rgba(111, 78, 40, 0.24);
+  animation: room-rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.room-sheet__handle {
+  width: 44px;
+  height: 5px;
+  margin: 6px auto 14px;
+  border-radius: 99px;
+  background: rgba(112, 82, 48, 0.16);
+}
+
+.room-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--room-border, rgba(112, 82, 48, 0.1));
+}
+
+.room-sheet__heart { color: #c96f7b; display: grid; place-items: center; }
+
+.room-sheet__head h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 19px;
+  font-weight: 800;
+  color: #513f28;
+}
+
+.room-sheet__close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(112, 82, 48, 0.08);
+  color: #5f6238;
+  cursor: pointer;
+}
+
+.room-sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 14px;
+}
+
+/* Sheets reuse the classic content cards inside a warm container. */
+.room-sheet__body .calendar,
+.room-sheet__body .collection,
+.room-sheet__body .reminder-card,
+.room-sheet__body .reminder-settings,
+.room-sheet__body .day-praises {
+  margin-top: 0;
+  box-shadow: none;
+}
+
+@keyframes room-rise {
+  from { transform: translateY(32px); opacity: 0; }
+}
+
+/* ── Recoverable loading / failure states ────────────────────────────── */
+
+.room-fallback {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  width: min(100%, 560px);
+  height: 100dvh;
+  margin: 0 auto;
+  padding: 24px;
+  background: #f8ecd8;
+  color: #513f28;
+  font-family: "Nunito", system-ui, sans-serif;
+  text-align: center;
+}
+
+.room-fallback__title { margin: 0; font-size: 20px; font-weight: 800; }
+.room-fallback__note { margin: 0; font-size: 15px; color: rgba(95, 98, 56, 0.8); }
+
+.room-fallback__back {
+  min-height: 48px;
+  margin-top: 6px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #74754b;
+  color: #fff3dc;
+  font-size: 15.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-fallback__back:focus-visible { outline: 3px solid rgba(95, 98, 56, 0.62); outline-offset: 3px; }
+
+/* ── Settings sheet content ──────────────────────────────────────────── */
+
+.room-settings { display: grid; gap: 16px; padding-bottom: 8px; }
+
+.room-settings__note {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(95, 98, 56, 0.85);
+}
+
+.room-settings__back {
+  min-height: 50px;
+  border: 1px solid rgba(112, 82, 48, 0.18);
+  border-radius: 16px;
+  background: #74754b;
+  color: #fff3dc;
+  font-size: 15.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-settings__back:focus-visible { outline: 3px solid rgba(95, 98, 56, 0.62); outline-offset: 3px; }
+
+/* ── Short screens: tighten air, keep every control visible ──────────── */
+
+@media (max-height: 680px) {
+  .room-speech { top: calc(78px + env(safe-area-inset-top)); width: min(88%, 330px); }
+  .room-speech__text { padding: 12px 16px 14px; font-size: 16px; }
+  /* Short screens: nav 104px, CTA lifted 48px. */
+  .room-lower { bottom: calc(158px + env(safe-area-inset-bottom)); }
+  .room-furnish { min-height: 44px; padding: 8px 14px; font-size: 14px; }
+  .room-tagline { font-size: 13px; }
+  .room-nav { height: calc(104px + env(safe-area-inset-bottom)); }
+  .room-nav__cta { width: 104px; height: 104px; margin-top: -48px; font-size: 14px; }
+  .room-nav__cta svg { width: 34px; height: 34px; }
+  .room-nav__item { margin-top: 10px; font-size: 13.5px; }
+  .room-hud__progress { padding: 9px 14px; font-size: 13.5px; }
+}
+
+@media (max-width: 360px) {
+  .room-hud { left: 12px; right: 12px; }
+  .room-lower { left: 12px; right: 12px; gap: 8px; }
+  /* The caption is part of the approved composition at 360px too: it shrinks
+     rather than disappearing. */
+  .room-tagline { font-size: 12.5px; line-height: 1.35; }
+  .room-furnish { padding: 9px 13px; font-size: 14px; }
+  .room-speech__text { font-size: 16.5px; }
+  .room-nav__cta { width: 108px; height: 108px; }
+}

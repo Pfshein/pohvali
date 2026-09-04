@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <!--
+    Front layer: the parts that overlap a seated mascot — the two rolled arms
+    and the front lip of the seat cushion. The lip starts at y=700, just below
+    the seat surface at y=670, so a character resting there is overlapped only
+    at its base instead of being buried. Registered with chair-back.svg on the
+    same 1000x1000 canvas.
+  -->
+  <defs>
+    <linearGradient id="armRoll" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8e946e"/>
+      <stop offset="0.45" stop-color="#7e8460"/>
+      <stop offset="1" stop-color="#6b7150"/>
+    </linearGradient>
+    <linearGradient id="armInner" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5e6446"/>
+      <stop offset="1" stop-color="#7b8159"/>
+    </linearGradient>
+    <linearGradient id="lip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#878d66"/>
+      <stop offset="1" stop-color="#6d7350"/>
+    </linearGradient>
+    <radialGradient id="rollCap" cx="0.42" cy="0.34" r="0.72">
+      <stop offset="0" stop-color="#a4aa82"/>
+      <stop offset="1" stop-color="#7c8259"/>
+    </radialGradient>
+    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7b8159"/>
+      <stop offset="1" stop-color="#646a4a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- base skirt tying the two arms into one piece of furniture -->
+  <path d="M150 776
+           L 850 776
+           Q 866 776 864 796
+           L 858 832
+           Q 856 850 836 850
+           L 164 850
+           Q 144 850 142 832
+           L 136 796
+           Q 134 776 150 776 Z"
+        fill="url(#base)" stroke="#575c42" stroke-width="7"/>
+  <path d="M162 790 L838 790" stroke="#a7ad84" stroke-width="6" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- front lip of the seat cushion -->
+  <path d="M248 744
+           C 248 714 300 700 500 700
+           C 700 700 752 714 752 744
+           L 752 796
+           Q 752 826 710 828
+           L 290 828
+           Q 248 826 248 796 Z"
+        fill="url(#lip)" stroke="#575c42" stroke-width="7"/>
+  <path d="M272 738 C 320 718 410 710 500 710 C 590 710 680 718 728 738"
+        fill="none" stroke="#a7ad84" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <path d="M272 786 C 330 772 420 766 500 766 C 580 766 670 772 728 786"
+        fill="none" stroke="#5e6446" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- left rolled arm -->
+  <path d="M92 528
+           C 92 466 138 420 196 420
+           C 254 420 300 466 300 528
+           L 300 764
+           Q 300 802 258 804
+           L 134 804
+           Q 92 802 92 764 Z"
+        fill="url(#armRoll)" stroke="#575c42" stroke-width="7"/>
+  <ellipse cx="196" cy="486" rx="94" ry="56" fill="url(#rollCap)" opacity="0.9"/>
+  <path d="M128 462 C 142 430 166 414 196 414 C 226 414 250 430 264 462"
+        fill="none" stroke="#b6bc95" stroke-width="9" stroke-linecap="round" opacity="0.5"/>
+  <!-- inner face turned toward the seat -->
+  <path d="M268 530 C 268 480 240 448 196 444 L 196 800 L 258 802 Q 268 792 268 764 Z"
+        fill="url(#armInner)" opacity="0.4"/>
+
+  <!-- right rolled arm (mirrored) -->
+  <path d="M908 528
+           C 908 466 862 420 804 420
+           C 746 420 700 466 700 528
+           L 700 764
+           Q 700 802 742 804
+           L 866 804
+           Q 908 802 908 764 Z"
+        fill="url(#armRoll)" stroke="#575c42" stroke-width="7"/>
+  <ellipse cx="804" cy="486" rx="94" ry="56" fill="url(#rollCap)" opacity="0.9"/>
+  <path d="M872 462 C 858 430 834 414 804 414 C 774 414 750 430 736 462"
+        fill="none" stroke="#b6bc95" stroke-width="9" stroke-linecap="round" opacity="0.5"/>
+  <path d="M732 530 C 732 480 760 448 804 444 L 804 800 L 742 802 Q 732 792 732 764 Z"
+        fill="url(#armInner)" opacity="0.4"/>
+
+  <!-- arms cast a soft shadow onto the cushion lip -->
+  <ellipse cx="300" cy="806" rx="58" ry="15" fill="#575c42" opacity="0.16"/>
+  <ellipse cx="700" cy="806" rx="58" ry="15" fill="#575c42" opacity="0.16"/>
+</svg>
