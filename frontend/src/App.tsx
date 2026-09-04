@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { ClassicAppView } from "./components/ClassicAppView";
 import { CollectionPanel } from "./components/CollectionPanel";
 import { MonthCalendar } from "./components/MonthCalendar";
 import { PrivacyPanel } from "./components/PrivacyPanel";
 import { RecoveryAccess } from "./components/RecoveryAccess";
 import { ReminderOffer } from "./components/ReminderOffer";
 import { ReminderSettings } from "./components/ReminderSettings";
-import { StarArcHero } from "./components/StarArcHero";
+import { RoomLoadBoundary } from "./features/room/components/RoomLoadBoundary";
+import { createRoomCatalog } from "./features/room/catalog/roomCatalog";
+import { resolveRoomMascot } from "./features/room/catalog/roomMascot";
+import { createStarterRoom } from "./features/room/catalog/starterRoom";
+import type { RoomState } from "./features/room/model/room";
 import type { PraiseCreated } from "./lib/api";
 import {
   currentMonth,
@@ -23,7 +28,7 @@ import { russianMonthNameGenitive, russianMonthNamePrepositional } from "./lib/m
 import type { ReminderControls } from "./lib/reminders-api";
 import { dayEntriesAfterSave, type DayEntry } from "./lib/praise-api";
 import { isValidPraise, MAX_PRAISE_LENGTH, normalizePraise } from "./lib/praise";
-import { starsWithCount } from "./lib/plural";
+import { loadUiMode, saveUiMode, type UiMode } from "./lib/ui-mode";
 
 /**
  * Shown instead of saving when the selected day has not arrived yet. A praise
@@ -95,6 +100,16 @@ export function App({
   const [balance, setBalance] = useState<number | null>(initialBalance);
   const [dayEntries, setDayEntries] = useState<DayEntry[] | null>(null);
   const [dayError, setDayError] = useState(false);
+  const [collection, setCollection] = useState<MascotCollection | null>(null);
+  const [uiMode, setUiMode] = useState<UiMode>(() =>
+    typeof window === "undefined" ? "classic" : loadUiMode(window.localStorage),
+  );
+  // RoomState lives above the mode switch, so room → classic → room keeps
+  // the current arrangement within a session (persistence itself is PH-903).
+  const [room, setRoom] = useState<RoomState>(() => {
+    const seated = resolveRoomMascot(null, mascotCode);
+    return createStarterRoom(seated, createRoomCatalog([seated]));
+  });
   const canSave = isValidPraise(praise);
   const selectedDate = selectedDay === null ? null : dateInMonth(viewMonth, selectedDay);
   // Judged against the client's own clock, so a user in a zone where the day
@@ -107,14 +122,47 @@ export function App({
   );
   const daysInMonth = new Date(viewMonth.year, viewMonth.month, 0).getDate();
 
+  const roomMascot = useMemo(
+    () => resolveRoomMascot(collection, activeMascotCode),
+    [collection, activeMascotCode],
+  );
+
+  // Re-seat only when the active mascot really changes (render-phase state
+  // adjustment, the React-blessed pattern); the arrangement of every other
+  // item survives all other updates, and mode switches never touch this.
+  const [seatedMascotTemplate, setSeatedMascotTemplate] = useState(
+    () => `mascot.${resolveRoomMascot(null, mascotCode).code}`,
+  );
+  let seatedRoom = room;
+  if (seatedMascotTemplate !== `mascot.${roomMascot.code}`) {
+    seatedRoom = createStarterRoom(roomMascot, createRoomCatalog([roomMascot]));
+    setRoom(seatedRoom);
+    setSeatedMascotTemplate(`mascot.${roomMascot.code}`);
+  }
+
+  function persistUiMode(mode: UiMode) {
+    if (typeof window !== "undefined") saveUiMode(mode, window.localStorage);
+  }
+
+  function selectRoom() {
+    setUiMode("room"); // UI switches immediately; the write is best effort.
+    persistUiMode("room");
+  }
+
+  function selectClassic() {
+    setUiMode("classic");
+    persistUiMode("classic");
+  }
+
   const liveCollection = useMemo<MascotCollectionHandlers | undefined>(() => {
     if (!mascotCollection) return undefined;
     return {
       load: async () => {
-        const collection = await mascotCollection.load();
-        setBalance(collection.balance);
-        if (collection.activeMascot) setActiveMascotCode(collection.activeMascot);
-        return collection;
+        const loaded = await mascotCollection.load();
+        setBalance(loaded.balance);
+        setCollection(loaded);
+        if (loaded.activeMascot) setActiveMascotCode(loaded.activeMascot);
+        return loaded;
       },
       purchase: async (code) => {
         const result = await mascotCollection.purchase(code);
@@ -229,38 +277,8 @@ export function App({
     }
   }
 
-  return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Любовь начинается с себя</p>
-          <h1>{firstName ? `${firstName}, привет` : "Похвали себя"}</h1>
-        </div>
-        <div
-          className="star-balance"
-          aria-label={balance === null ? "Баланс загружается" : starsWithCount(balance)}
-        >
-          <span aria-hidden="true">★</span><b>{balance ?? "…"}</b>
-        </div>
-      </header>
-
-      <StarArcHero
-        praisedDays={markedDays}
-        monthName={russianMonthNamePrepositional(viewMonth.month)}
-        daysInMonth={daysInMonth}
-        mascot={mascot}
-      />
-
-      <section className="gentle-prompt">
-        <div>
-          <p className="eyebrow">Можно даже за мелочь</p>
-          <h2>За что ты хочешь похвалить себя сегодня?</h2>
-        </div>
-        <button className="primary-button" onClick={() => setComposerOpen(true)}>
-          Написать
-        </button>
-      </section>
-
+  const calendarContent = (
+    <>
       <MonthCalendar
         year={viewMonth.year}
         month={viewMonth.month}
@@ -297,7 +315,11 @@ export function App({
           )}
         </section>
       )}
+    </>
+  );
 
+  const profileContent = (
+    <>
       {reminderOffer && <ReminderOffer onAnswer={reminderOffer.onAnswer} />}
 
       {reminderControls && <ReminderSettings controls={reminderControls} />}
@@ -329,51 +351,86 @@ export function App({
         />
       )}
       {onDeleteAccount && <PrivacyPanel onDeleteAccount={onDeleteAccount} />}
+    </>
+  );
 
-      {isComposerOpen && (
-        <div className="scrim" role="presentation" onMouseDown={() => setComposerOpen(false)}>
-          <section
-            className="composer"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="composer-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="composer__handle" />
-            <button className="composer__close" onClick={() => setComposerOpen(false)} aria-label="Закрыть">×</button>
-            <p className="eyebrow">
-              {isFutureDaySelected
-                ? `${selectedDay} ${russianMonthNameGenitive(viewMonth.month)}`
-                : "Сегодня"}
-            </p>
-            <h2 id="composer-title">Похвала тоже считается</h2>
-            {isFutureDaySelected && (
-              <p className="inline-note" role="status">{FUTURE_DAY_MESSAGE}</p>
-            )}
-            <textarea
-              autoFocus
-              maxLength={MAX_PRAISE_LENGTH}
-              value={praise}
-              onChange={(event) => setPraise(event.target.value)}
-              placeholder="Например: вовремя остановился и отдохнул"
-              aria-describedby="composer-help"
-            />
-            <div className="composer__meta" id="composer-help">
-              <span>Только ты сможешь это прочитать</span>
-              <span>{praise.length}/{MAX_PRAISE_LENGTH}</span>
-            </div>
-            <button
-              className="primary-button primary-button--wide"
-              disabled={!canSave || isSaving}
-              onClick={() => void handleSave()}
-            >
-              {isSaving ? "Сохраняем…" : "Сохранить похвалу"}
-            </button>
-          </section>
+  const composerContent = isComposerOpen ? (
+    <div className="scrim" role="presentation" onMouseDown={() => setComposerOpen(false)}>
+      <section
+        className="composer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="composer-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="composer__handle" />
+        <button className="composer__close" onClick={() => setComposerOpen(false)} aria-label="Закрыть">×</button>
+        <p className="eyebrow">
+          {isFutureDaySelected
+            ? `${selectedDay} ${russianMonthNameGenitive(viewMonth.month)}`
+            : "Сегодня"}
+        </p>
+        <h2 id="composer-title">Похвала тоже считается</h2>
+        {isFutureDaySelected && (
+          <p className="inline-note" role="status">{FUTURE_DAY_MESSAGE}</p>
+        )}
+        <textarea
+          autoFocus
+          maxLength={MAX_PRAISE_LENGTH}
+          value={praise}
+          onChange={(event) => setPraise(event.target.value)}
+          placeholder="Например: вовремя остановился и отдохнул"
+          aria-describedby="composer-help"
+        />
+        <div className="composer__meta" id="composer-help">
+          <span>Только ты сможешь это прочитать</span>
+          <span>{praise.length}/{MAX_PRAISE_LENGTH}</span>
         </div>
-      )}
+        <button
+          className="primary-button primary-button--wide"
+          disabled={!canSave || isSaving}
+          onClick={() => void handleSave()}
+        >
+          {isSaving ? "Сохраняем…" : "Сохранить похвалу"}
+        </button>
+      </section>
+    </div>
+  ) : null;
 
-      {savedMessage && <div className="toast" role="status">{savedMessage}</div>}
-    </main>
+  const statusContent = savedMessage ? <div className="toast" role="status">{savedMessage}</div> : null;
+
+  if (uiMode === "room") {
+    return (
+      <RoomLoadBoundary
+        mascot={roomMascot}
+        praisedDayCount={markedDays.size}
+        room={seatedRoom}
+        onRoomChange={setRoom}
+        calendarContent={calendarContent}
+        profileContent={profileContent}
+        composerContent={composerContent}
+        statusContent={statusContent}
+        onOpenComposer={() => setComposerOpen(true)}
+        onExitToClassic={selectClassic}
+        onSelectClassic={selectClassic}
+      />
+    );
+  }
+
+  return (
+    <ClassicAppView
+      firstName={firstName}
+      balance={balance}
+      mascot={mascot}
+      markedDays={markedDays}
+      monthName={russianMonthNamePrepositional(viewMonth.month)}
+      daysInMonth={daysInMonth}
+      calendarContent={calendarContent}
+      profileContent={profileContent}
+      composerContent={composerContent}
+      statusContent={statusContent}
+      onPraise={() => setComposerOpen(true)}
+      onSelectRoom={selectRoom}
+    />
   );
 }

@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <!--
+    Back layer: everything that sits BEHIND the seated mascot — contact
+    shadow, wooden feet, the chair back with its top roll, and the seat
+    cushion the character rests on. Registered with chair-front.svg on the
+    same 1000x1000 canvas; the seat surface is at y=670 and the floor
+    contact at y=910 (see CHAIR_SEAT_POINT / CHAIR_ANCHOR in scenePlan.ts).
+  -->
+  <defs>
+    <linearGradient id="backBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#868c66"/>
+      <stop offset="0.45" stop-color="#767c58"/>
+      <stop offset="1" stop-color="#666b4b"/>
+    </linearGradient>
+    <linearGradient id="backPanel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f9570"/>
+      <stop offset="0.55" stop-color="#818760"/>
+      <stop offset="1" stop-color="#737950"/>
+    </linearGradient>
+    <linearGradient id="topRoll" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9aa07a"/>
+      <stop offset="1" stop-color="#7c8259"/>
+    </linearGradient>
+    <linearGradient id="cushion" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b9169"/>
+      <stop offset="1" stop-color="#767c56"/>
+    </linearGradient>
+    <linearGradient id="footWood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c99a68"/>
+      <stop offset="1" stop-color="#9d7247"/>
+    </linearGradient>
+    <radialGradient id="panelSheen" cx="0.5" cy="0.26" r="0.78">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- soft contact shadow on the floor -->
+  <ellipse cx="500" cy="906" rx="352" ry="46" fill="#6f4e28" opacity="0.17"/>
+
+  <!-- rear feet, dimmer so they read as further away -->
+  <path d="M300 780 L356 780 L352 858 Q351 872 336 872 L312 872 Q297 872 297 858 Z"
+        fill="#8a6440" opacity="0.55"/>
+  <path d="M644 780 L700 780 L703 858 Q703 872 688 872 L664 872 Q649 872 648 858 Z"
+        fill="#8a6440" opacity="0.55"/>
+
+  <!-- front wooden feet -->
+  <path d="M196 792 L268 792 L262 888 Q261 906 240 906 L214 906 Q194 906 194 888 Z"
+        fill="url(#footWood)"/>
+  <path d="M732 792 L804 792 L806 888 Q806 906 786 906 L760 906 Q739 906 738 888 Z"
+        fill="url(#footWood)"/>
+  <path d="M196 792 L268 792 L267 816 L195 816 Z" fill="#8a6440" opacity="0.45"/>
+  <path d="M732 792 L804 792 L805 816 L733 816 Z" fill="#8a6440" opacity="0.45"/>
+
+  <!-- chair back: wide, low, softly rounded like the reference -->
+  <path d="M500 165
+           C 700 165 800 232 806 352
+           C 812 452 810 560 804 640
+           Q 798 706 736 706
+           L 264 706
+           Q 202 706 196 640
+           C 190 560 188 452 194 352
+           C 200 232 300 165 500 165 Z"
+        fill="url(#backBody)" stroke="#575c42" stroke-width="7"/>
+
+  <!-- top roll of the backrest -->
+  <path d="M500 165
+           C 700 165 800 232 806 352
+           L 806 372
+           C 792 268 690 226 500 226
+           C 310 226 208 268 194 372
+           L 194 352
+           C 200 232 300 165 500 165 Z"
+        fill="url(#topRoll)"/>
+
+  <!-- inner upholstered panel -->
+  <path d="M500 246
+           C 662 246 742 296 748 384
+           C 753 462 751 552 746 616
+           Q 741 662 690 662
+           L 310 662
+           Q 259 662 254 616
+           C 249 552 247 462 252 384
+           C 258 296 338 246 500 246 Z"
+        fill="url(#backPanel)" stroke="#5f6547" stroke-width="5"/>
+  <path d="M500 246
+           C 662 246 742 296 748 384
+           C 753 462 751 552 746 616
+           Q 741 662 690 662
+           L 310 662
+           Q 259 662 254 616
+           C 249 552 247 462 252 384
+           C 258 296 338 246 500 246 Z"
+        fill="url(#panelSheen)"/>
+
+  <!-- tufting: soft creases first, then buttons on top -->
+  <g stroke="#666c4c" stroke-width="3" stroke-linecap="round" opacity="0.38" fill="none">
+    <path d="M390 372 L500 360"/>
+    <path d="M510 360 L610 372"/>
+    <path d="M380 384 L380 486"/>
+    <path d="M500 372 L500 474"/>
+    <path d="M620 384 L620 486"/>
+    <path d="M390 498 L500 486"/>
+    <path d="M510 486 L610 498"/>
+  </g>
+  <g fill="#5b6142">
+    <circle cx="380" cy="372" r="10"/>
+    <circle cx="500" cy="360" r="10"/>
+    <circle cx="620" cy="372" r="10"/>
+    <circle cx="380" cy="498" r="10"/>
+    <circle cx="500" cy="486" r="10"/>
+    <circle cx="620" cy="498" r="10"/>
+  </g>
+  <g stroke="#4e5439" stroke-width="3" stroke-linecap="round" opacity="0.8">
+    <path d="M375 367 L385 377 M385 367 L375 377"/>
+    <path d="M495 355 L505 365 M505 355 L495 365"/>
+    <path d="M615 367 L625 377 M625 367 L615 377"/>
+    <path d="M375 493 L385 503 M385 493 L375 503"/>
+    <path d="M495 481 L505 491 M505 481 L495 491"/>
+    <path d="M615 493 L625 503 M625 493 L615 503"/>
+  </g>
+
+  <!-- highlight along the top roll -->
+  <path d="M318 250 C 380 218 440 206 500 206 C 560 206 620 218 682 250"
+        fill="none" stroke="#b3b993" stroke-width="11" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- seat cushion; the mascot's base rests at y=670 -->
+  <path d="M262 660
+           Q 262 622 306 620
+           L 694 620
+           Q 738 622 738 660
+           L 742 742
+           L 258 742 Z"
+        fill="url(#cushion)" stroke="#5f6547" stroke-width="6"/>
+  <path d="M276 646 Q 500 624 724 646"
+        fill="none" stroke="#a2a87f" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
+</svg>
