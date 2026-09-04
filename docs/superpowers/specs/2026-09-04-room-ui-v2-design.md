@@ -6,8 +6,6 @@
 
 **Визуальный источник:** `C:\Users\Shein\Downloads\Изображение Codex 4 сент. 2026 г., 21_56_42.png`, 1086×1447. Если файл недоступен, текст и размеры в этой спецификации являются достаточным источником истины.
 
-**Продолжает:** `docs/superpowers/specs/2026-09-04-room-design.md`
-
 **Реализуется по плану:** `docs/superpowers/plans/2026-09-04-room-ui-v2.md`
 
 ## 1. Решение
@@ -208,8 +206,47 @@ Pixi не вызывает API, не открывает dialogs и не хран
 type RoomItemMoveHandler = (id: string, position: NormalizedPoint) => void;
 ```
 
-Сохраняются существующие контракты `RoomItem`, normalized coordinates `0…1`, zones,
-layer bases, versioned serialization и lifecycle `mount/update/resize/destroy`.
+Room foundation создаётся заново по следующим контрактам:
+
+```ts
+type NormalizedPoint = { x: number; y: number };
+type RoomZoneId = "wall" | "floor" | "fixed";
+type RoomLayer =
+  | "background"
+  | "wall"
+  | "floor"
+  | "furniture"
+  | "mascot"
+  | "foreground"
+  | "effects";
+
+interface RoomItem {
+  id: string;
+  templateId: string;
+  position: NormalizedPoint;
+  scale: number;
+  rotation: number;
+  layer: RoomLayer;
+  zIndex: number;
+  zoneId: RoomZoneId;
+  locked: boolean;
+}
+
+interface RoomState {
+  schemaVersion: 1;
+  items: readonly RoomItem[];
+}
+```
+
+- Координаты конечны и ограничены `0…1`; resize не меняет state.
+- Layer base задаёт глобальный порядок, локальный `zIndex` не пересекает слой.
+- `placement zone` ограничивает drag; `fixed` возвращает исходную точку.
+- Catalog хранит templates и assets отдельно; UI создаёт только instances.
+- JSON имеет `schemaVersion: 1`; malformed, unknown version и unknown template
+  отвергаются до передачи renderer.
+- Lifecycle фиксирован контрактом `mount/update/resize/setEditing/destroy`.
+- React StrictMode, незавершённая загрузка texture, `pointercancel` и blur не оставляют
+  listeners, canvas или устаревшие display objects.
 
 ## 6. UI mode и состояние
 
